@@ -1,0 +1,34 @@
+# Secrets and local configuration
+.env
+.env.*
+!.env.example
+**/.env
+**/.env.*
+!**/.env.example
+
+# Frontend build output and dependencies
+node_modules/
+**/node_modules/
+dist/
+**/dist/
+
+# Python environments, caches and test output
+venv/
+.venv/
+**/venv/
+**/.venv/
+__pycache__/
+**/__pycache__/
+*.py[cod]
+.pytest_cache/
+**/.pytest_cache/
+
+# Generated local vector stores and databases
+chroma_db/
+backend/chroma_db/
+*.db
+
+# OS/editor noise
+.DS_Store
+Thumbs.db
+*.log

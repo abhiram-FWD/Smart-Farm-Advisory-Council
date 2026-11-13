@@ -1,0 +1,112 @@
+
+TOMATO CROP - DISEASE KNOWLEDGE
+
+1. EARLY BLIGHT
+
+Causal organism:
+Alternaria solani (fungus).
+
+Possible symptoms:
+- Brown leaf spots with characteristic concentric rings.
+- Yellowing around affected leaf areas.
+- Older leaves are often affected first.
+- Severe infection may cause premature leaf drying.
+
+Monitoring:
+Inspect lower and older leaves for expanding lesions.
+Record lesion appearance and disease progression.
+
+2. LATE BLIGHT
+
+Causal organism:
+Phytophthora infestans (oomycete).
+
+Possible symptoms:
+- Irregular water-soaked leaf lesions.
+- Lesions may become brown or dark.
+- White growth may appear on leaf undersides during humid conditions.
+- Dark lesions may develop on stems.
+- Fruits may develop firm, brown lesions.
+
+Favourable conditions:
+Cool temperatures and prolonged leaf wetness
+can favour disease development.
+
+Monitoring:
+Inspect leaves, stems and fruits regularly.
+Pay attention to rapidly expanding lesions.
+Record recent weather and symptom progression.
+
+3. BACTERIAL WILT
+
+Causal organism:
+Ralstonia solanacearum species complex (bacterium).
+
+Possible symptoms:
+- Sudden wilting of green leaves.
+- Plants may wilt without initial yellowing.
+- Vascular tissues may become brown.
+- Milky bacterial streaming may sometimes be observed
+  from freshly cut stems placed in clean water.
+
+Monitoring:
+Inspect wilted plants and their stems.
+Check soil moisture and drainage conditions.
+Seek laboratory confirmation because other problems
+can also cause wilting.
+
+4. TOMATO LEAF CURL DISEASE
+
+Causal agent:
+Tomato leaf curl virus species, commonly transmitted
+by whiteflies.
+
+Possible symptoms:
+- Upward or downward curling of leaves.
+- Leaf yellowing and reduced leaf size.
+- Shortened internodes.
+- Stunted plant growth.
+- Reduced fruit formation.
+
+Monitoring:
+Inspect leaf shape and plant growth.
+Check for whitefly populations.
+Record affected plants and their distribution.
+
+5. SEPTORIA LEAF SPOT
+
+Causal organism:
+Septoria lycopersici (fungus).
+
+Possible symptoms:
+- Numerous small, circular leaf spots.
+- Spots may have grey centres and dark margins.
+- Tiny dark fruiting structures may appear within lesions.
+- Severely affected leaves may turn yellow and fall.
+
+Monitoring:
+Inspect lower leaves for small characteristic lesions.
+Record disease progression and field distribution.
+
+6. GENERAL DISEASE ADVISORY
+
+Several tomato diseases can produce similar symptoms.
+
+Distinguish infectious diseases from:
+- Nutrient deficiencies.
+- Water stress.
+- Root damage.
+- Chemical injury.
+- Environmental stress.
+
+Record crop stage, affected plant parts,
+weather conditions and symptom progression.
+
+Do not confirm a disease from visual symptoms alone.
+Seek laboratory or agricultural expert confirmation
+when identification is uncertain.
+
+Do not prescribe pesticides or fungicides solely
+from AI-generated findings.
+
+Use locally approved agricultural recommendations.

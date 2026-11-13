@@ -1,0 +1,22 @@
+
+# API and server
+fastapi==0.162.0
+uvicorn[standard]==0.54.0
+pydantic==2.13.5
+
+# AI and agent orchestration
+semantic-kernel==1.46.0
+openai==3.42.0
+
+# RAG and vector database
+chromadb==1.5.9
+onnxruntime==1.31.1
+
+# External API requests
+requests==2.34.2
+
+# Environment variables
+python-dotenv==1.2.4
+
+# Persistent farm-history memory (MongoDB)
+pymongo[srv]

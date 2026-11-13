@@ -1,0 +1,70 @@
+
+WHEAT CROP - DISEASE KNOWLEDGE
+
+1. WHEAT RUST
+
+Common types:
+- Yellow rust (stripe rust)
+- Brown rust (leaf rust)
+- Black rust (stem rust)
+
+Possible symptoms:
+- Yellow rust: yellow-orange pustules arranged in stripes on leaves.
+- Brown rust: scattered orange-brown pustules on leaf surfaces.
+- Black rust: dark brown to black pustules, often on stems and leaves.
+
+Favourable conditions:
+Disease development depends on temperature, humidity,
+crop variety and environmental conditions.
+
+Monitoring:
+Inspect leaves and stems regularly.
+Observe the colour, shape and distribution of pustules.
+Record crop stage and affected plant areas.
+
+2. POWDERY MILDEW
+
+Possible symptoms:
+- White powdery fungal growth on leaf surfaces.
+- Yellowing or drying of severely affected leaves.
+- Reduced healthy leaf area.
+
+Monitoring:
+Inspect upper and lower leaf surfaces.
+Record how quickly the symptoms spread.
+
+3. KARNAL BUNT
+
+Possible symptoms:
+- Partial replacement of wheat grain contents by dark spores.
+- Affected grains may produce a dark appearance and unpleasant odour.
+
+Monitoring:
+Inspect harvested grain and seek laboratory confirmation
+when Karnal bunt is suspected.
+
+4. LOOSE SMUT
+
+Possible symptoms:
+- Grain heads may be replaced by masses of dark spores.
+- Infected ears may appear black and powdery.
+- Infection may become apparent when ears emerge.
+
+Monitoring:
+Inspect emerging wheat ears during crop development.
+Record affected plants and consult local agricultural experts.
+
+5. GENERAL DISEASE ADVISORY
+
+Visual symptoms alone cannot confirm a disease.
+Nutrient deficiency, water stress and environmental damage
+may produce similar symptoms.
+
+Record affected plant parts, symptom distribution,
+crop stage and recent weather conditions.
+
+Seek laboratory or agricultural expert confirmation
+when disease identification is uncertain.
+
+Do not prescribe fungicides solely from AI-generated findings.
+Use locally approved agricultural recommendations.

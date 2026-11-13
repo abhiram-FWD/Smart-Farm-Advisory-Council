@@ -1,0 +1,103 @@
+
+SUGARCANE CROP - DISEASE KNOWLEDGE
+
+1. RED ROT
+
+Causal organism:
+Colletotrichum falcatum (fungus).
+
+Possible symptoms:
+- Yellowing and drying of leaves.
+- Internal red discolouration of stalk tissues.
+- White patches may appear within the red internal tissue.
+- Affected stalks may develop an unpleasant smell.
+- Severe infection may cause stalk deterioration.
+
+Monitoring:
+Inspect affected stalks by examining internal tissue.
+Record the distribution of affected clumps.
+Seek expert confirmation when symptoms are uncertain.
+
+2. SMUT
+
+Causal organism:
+Sporisorium scitamineum (fungus).
+
+Possible symptoms:
+- A long, black, whip-like structure emerges
+  from the growing point.
+- Thin, grassy-looking shoots may develop.
+- Infected plants may show reduced growth.
+- Cane development and yield may be affected.
+
+Monitoring:
+Inspect growing points for characteristic whip structures.
+Record affected clumps and their locations.
+
+3. SUGARCANE GRASSY SHOOT DISEASE
+
+Causal agent:
+Phytoplasma.
+
+Possible symptoms:
+- Excessive production of thin shoots.
+- Leaves become narrow and pale.
+- Plants develop a grassy appearance.
+- Stunted growth and reduced cane development.
+
+Monitoring:
+Inspect plants for abnormal shoot multiplication.
+Compare affected plants with healthy plants nearby.
+Seek diagnostic confirmation when required.
+
+4. SUGARCANE MOSAIC
+
+Causal agent:
+Sugarcane mosaic virus and related viruses.
+
+Possible symptoms:
+- Light and dark green mosaic patterns on leaves.
+- Irregular leaf colour patterns.
+- Reduced plant vigour.
+- Growth may become stunted in affected plants.
+
+Monitoring:
+Inspect leaves for characteristic mosaic patterns.
+Record affected plants and their distribution.
+Check for possible insect vectors.
+
+5. PINEAPPLE DISEASE
+
+Causal organism:
+Ceratocystis paradoxa (fungus).
+
+Possible symptoms:
+- Poor germination of planted cane setts.
+- Internal tissue discolouration.
+- Softening and deterioration of affected setts.
+- A pineapple-like smell may develop in infected material.
+
+Monitoring:
+Inspect planting material and affected setts.
+Record germination failures and visible internal damage.
+
+6. GENERAL DISEASE ADVISORY
+
+Sugarcane diseases can produce overlapping symptoms.
+
+Consider:
+- Crop age and variety.
+- Planting material health.
+- Soil and drainage conditions.
+- Recent weather conditions.
+- Distribution of affected plants.
+
+Do not confirm a disease from visual symptoms alone.
+Laboratory testing or agricultural expert inspection
+may be needed.
+
+Do not prescribe pesticides or fungicides solely
+from AI-generated findings.
+
+Use locally approved agricultural recommendations
+and verified disease-management guidance.

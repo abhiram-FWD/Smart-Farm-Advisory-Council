@@ -1,0 +1,104 @@
+Agri Vision Isolated Evaluation Report
+======================================
+Execution timestamp (UTC): 2026-11-05T18:16:49.251776+00:00
+Code version: unavailable
+Execution mode: deterministic isolated evaluation fixtures
+
+Dependency isolation:
+{
+  "persistence": "in-memory only",
+  "rag": "fixture-backed; no ChromaDB opened or modified",
+  "llm": "fixture-backed; no Groq or other live LLM called",
+  "weather": "not called; rainfall supplied by scenario inputs",
+  "network": "not used by the evaluation runner"
+}
+
+Limitations:
+- LLM outputs and RAG matches are deterministic evaluation fixtures, not live Groq responses, real retrieval results, diagnoses, or agricultural advice.
+- The evaluation does not establish real-world model accuracy, agricultural validity, or the quality of external provider data.
+- Weather APIs and full Semantic Kernel orchestration are not evaluated.
+
+S01 | PASS | Low moisture with no expected rain
+Check type: deterministic rule check
+Dependencies: local deterministic irrigation rule
+Inputs: {"crop_name": "Wheat", "expected_rainfall": 0, "growth_stage": "Vegetative", "moisture": 15, "nitrogen": 60, "ph": 6.5, "phosphorus": 30, "potassium": 30, "symptoms": []}
+Expected: {"recommended_action": "irrigation recommended"}
+Scenario declared expectation: {"action": "irrigation", "risk": "Low soil moisture"}
+Actual: {"recommended_action": "Irrigation recommended"}
+
+S02 | PASS | Low moisture with rain expected
+Check type: deterministic rule check
+Dependencies: local deterministic irrigation rule
+Inputs: {"crop_name": "Wheat", "expected_rainfall": 25, "growth_stage": "Vegetative", "moisture": 20, "nitrogen": 60, "ph": 6.5, "phosphorus": 30, "potassium": 30, "symptoms": []}
+Expected: {"recommended_action": "recheck before irrigating"}
+Scenario declared expectation: {"action": "recheck_before_irrigation", "risk": "Low soil moisture"}
+Actual: {"recommended_action": "Recheck before irrigating"}
+
+S03 | PASS | Adequate moisture with rain expected
+Check type: deterministic rule check
+Dependencies: local deterministic irrigation rule
+Inputs: {"crop_name": "Wheat", "expected_rainfall": 30, "growth_stage": "Vegetative", "moisture": 55, "nitrogen": 60, "ph": 6.5, "phosphorus": 30, "potassium": 30, "symptoms": []}
+Expected: {"recommended_action": "postpone irrigation"}
+Scenario declared expectation: {"action": "postpone_irrigation", "risk": null}
+Actual: {"recommended_action": "Postpone irrigation"}
+
+S04 | PASS | Adequate moisture without rain
+Check type: deterministic rule check
+Dependencies: local deterministic irrigation rule
+Inputs: {"crop_name": "Wheat", "expected_rainfall": 0, "growth_stage": "Vegetative", "moisture": 60, "nitrogen": 60, "ph": 6.5, "phosphorus": 30, "potassium": 30, "symptoms": []}
+Expected: {"recommended_action": "no immediate irrigation required"}
+Scenario declared expectation: {"action": "no_immediate_irrigation", "risk": null}
+Actual: {"recommended_action": "No immediate irrigation required"}
+
+S05 | PASS | Preliminary acidic pH and moisture indicators
+Check type: deterministic soil rule check; RAG and LLM fixture paths exercised
+Dependencies: local deterministic soil rules, RAG fixture, LLM response fixture
+Inputs: {"crop_name": "Wheat", "expected_rainfall": 0, "growth_stage": "Vegetative", "moisture": 20, "nitrogen": 25, "ph": 5.0, "phosphorus": 30, "potassium": 30, "symptoms": []}
+Expected: {"preliminary_rule_indicators": ["Low soil moisture", "Soil may be too acidic"]}
+Scenario declared expectation: {"risks": ["Low soil moisture", "Soil may be too acidic"]}
+Actual: {"preliminary_rule_indicators": ["Low soil moisture", "Soil may be too acidic"]}
+
+S06 | PASS | Preliminary alkaline pH indicator
+Check type: deterministic soil rule check; RAG and LLM fixture paths exercised
+Dependencies: local deterministic soil rules, RAG fixture, LLM response fixture
+Inputs: {"crop_name": "Wheat", "expected_rainfall": 0, "growth_stage": "Vegetative", "moisture": 55, "nitrogen": 60, "ph": 8.0, "phosphorus": 10, "potassium": 30, "symptoms": []}
+Expected: {"preliminary_rule_indicators": ["Soil may be too alkaline"]}
+Scenario declared expectation: {"risks": ["Soil may be too alkaline"]}
+Actual: {"preliminary_rule_indicators": ["Soil may be too alkaline"]}
+
+S07 | PASS | Preliminary soil moisture indicator
+Check type: deterministic soil rule check; RAG and LLM fixture paths exercised
+Dependencies: local deterministic soil rules, RAG fixture, LLM response fixture
+Inputs: {"crop_name": "Wheat", "expected_rainfall": 0, "growth_stage": "Vegetative", "moisture": 20, "nitrogen": 60, "ph": 6.5, "phosphorus": 30, "potassium": 10, "symptoms": []}
+Expected: {"preliminary_rule_indicators": ["Low soil moisture"]}
+Scenario declared expectation: {"risks": ["Low soil moisture"]}
+Actual: {"preliminary_rule_indicators": ["Low soil moisture"]}
+
+S08 | PASS | Wheat with yellow leaves and wilting
+Check type: fixture-backed RAG and mocked AI shape check; not model accuracy
+Dependencies: RAG fixture, LLM response fixture
+Inputs: {"crop_name": "Wheat", "expected_rainfall": 0, "growth_stage": "Vegetative", "moisture": 35, "nitrogen": 50, "ph": 6.5, "phosphorus": 25, "potassium": 25, "symptoms": ["yellow leaves", "wilting"]}
+Expected: {"expert_inspection": true, "rag_required": true}
+Scenario declared expectation: {"expert_inspection": true, "rag_required": true}
+Actual: {"expert_inspection_required": true, "fixture_source_count": 2, "possible_disease_risks": [], "possible_pest_risks": []}
+
+S09 | PASS | Rice with leaf damage and brown spots
+Check type: fixture-backed RAG and mocked AI shape check; not model accuracy
+Dependencies: RAG fixture, LLM response fixture
+Inputs: {"crop_name": "Rice", "expected_rainfall": 0, "growth_stage": "Tillering", "moisture": 45, "nitrogen": 50, "ph": 6.5, "phosphorus": 25, "potassium": 25, "symptoms": ["leaf damage", "brown spots"]}
+Expected: {"expert_inspection": true, "rag_required": true}
+Scenario declared expectation: {"expert_inspection": true, "rag_required": true}
+Actual: {"expert_inspection_required": true, "fixture_source_count": 2, "possible_disease_risks": [], "possible_pest_risks": []}
+
+S10 | PASS | Repeated observations and farm-history memory
+Check type: isolated in-memory persistence and context-formatting check; RAG and AI fixtures
+Dependencies: in-memory persistence fixture, RAG fixture, LLM response fixture
+Inputs: {"crop_name": "Wheat", "expected_rainfall": 0, "growth_stage": "Vegetative", "moisture": 35, "nitrogen": 45, "ph": 6.2, "phosphorus": 25, "potassium": 30, "symptoms": ["yellow leaves"]}
+Expected: {"historical_context_available": true, "historical_context_used": true}
+Scenario declared expectation: {"historical_context_available": true, "historical_context_used": true}
+Actual: {"crop_agent_received_history": true, "historical_context_created": true, "observations_retrieved": 1, "previous_symptom_found": true, "soil_agent_received_history": true}
+
+Totals:
+{"blocked": 0, "fail": 0, "pass": 10, "scenario_count": 10}
+
+Scenario pass totals are not measures of model accuracy or agricultural reliability.

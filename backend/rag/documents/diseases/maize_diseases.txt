@@ -1,0 +1,74 @@
+
+MAIZE CROP - DISEASE KNOWLEDGE
+
+1. TURCICUM LEAF BLIGHT
+
+Causal organism:
+Exserohilum turcicum (fungus).
+
+Possible symptoms:
+- Long, elliptical, grey-green to brown lesions on leaves.
+- Lesions may enlarge and merge under favourable conditions.
+- Severe infection can reduce healthy leaf area.
+
+Monitoring:
+Inspect lower and upper leaves for elongated lesions.
+Record lesion size, distribution and crop growth stage.
+
+2. MAYDIS LEAF BLIGHT
+
+Causal organism:
+Bipolaris maydis (fungus).
+
+Possible symptoms:
+- Small to elongated brown lesions on leaves.
+- Lesions may become tan or brown as they develop.
+- Severe infection can cause extensive leaf damage.
+
+Monitoring:
+Inspect leaves for characteristic lesions.
+Observe whether symptoms spread to additional leaves.
+
+3. COMMON RUST
+
+Causal organism:
+Puccinia sorghi (fungus).
+
+Possible symptoms:
+- Small, raised, reddish-brown pustules on leaf surfaces.
+- Pustules may appear on both leaf surfaces.
+- Older pustules may become darker.
+
+Monitoring:
+Inspect leaves for raised rust pustules.
+Record their distribution and severity.
+
+4. DOWNY MILDEW
+
+Causal organisms:
+Species of Peronosclerospora and related genera.
+
+Possible symptoms:
+- Pale chlorotic stripes on leaves.
+- White downy growth may appear on affected leaf surfaces.
+- Plants may become stunted.
+- Some infections can cause abnormal tassel development.
+
+Monitoring:
+Inspect young plants for chlorotic striping and unusual growth.
+Record affected plants and field distribution.
+Seek expert confirmation because symptoms can vary by species.
+
+5. GENERAL DISEASE ADVISORY
+
+Leaf discoloration and lesions can have multiple causes.
+
+Consider crop variety, weather, crop stage and field history.
+Inspect affected leaves and monitor symptom progression.
+
+Do not confirm a disease from symptoms alone.
+Seek laboratory or agricultural expert confirmation
+when identification is uncertain.
+
+Do not prescribe fungicides solely from AI-generated findings.
+Use locally approved agricultural recommendations.

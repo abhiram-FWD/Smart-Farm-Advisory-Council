@@ -1,0 +1,77 @@
+
+COTTON CROP - DISEASE KNOWLEDGE
+
+1. COTTON BACTERIAL BLIGHT
+
+Causal organism:
+Xanthomonas citri pv. malvacearum (bacterium).
+
+Possible symptoms:
+- Angular, water-soaked leaf spots.
+- Dark lesions along leaf veins.
+- Lesions may expand and cause leaf blighting.
+- Infection may also affect stems and bolls.
+
+Monitoring:
+Inspect leaves, veins, stems and bolls.
+Record lesion distribution and crop growth stage.
+
+2. COTTON ALTERNARIA LEAF SPOT
+
+Causal organism:
+Alternaria species (fungus).
+
+Possible symptoms:
+- Brown circular or irregular leaf spots.
+- Spots may develop concentric rings.
+- Severely affected leaves may turn yellow and fall.
+
+Monitoring:
+Inspect older and lower leaves for expanding lesions.
+Record the number and distribution of affected plants.
+
+3. COTTON ANTHRACNOSE
+
+Causal organism:
+Colletotrichum species (fungus).
+
+Possible symptoms:
+- Dark lesions on stems and seedling tissues.
+- Seedling blight and damping-off may occur.
+- Bolls may develop dark, sunken lesions.
+- Severe infection may cause boll damage.
+
+Monitoring:
+Inspect seedlings, stems and developing bolls.
+Record affected plant parts and symptom progression.
+
+4. COTTON FUSARIUM WILT
+
+Causal organism:
+Fusarium oxysporum f. sp. vasinfectum (fungus).
+
+Possible symptoms:
+- Yellowing and wilting of leaves.
+- Stunted plant growth.
+- Vascular browning may be visible when stems are cut.
+- Symptoms may appear unevenly across the field.
+
+Monitoring:
+Inspect affected plants and compare them with healthy plants.
+Record wilt distribution and soil conditions.
+Seek expert confirmation before identifying the disease.
+
+5. GENERAL DISEASE ADVISORY
+
+Cotton diseases may produce similar symptoms.
+Water stress, nutrient problems and root damage
+can also cause leaf yellowing and wilting.
+
+Inspect affected plant parts and record symptom progression.
+Consider field history, crop stage and environmental conditions.
+
+Do not confirm diseases from symptoms alone.
+Seek laboratory or agricultural expert confirmation.
+
+Do not prescribe fungicides solely from AI-generated findings.
+Use locally approved agricultural recommendations.

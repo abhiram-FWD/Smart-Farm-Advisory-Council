@@ -1,0 +1,79 @@
+
+RICE CROP - DISEASE KNOWLEDGE
+
+1. BLAST DISEASE
+
+Causal organism:
+Magnaporthe oryzae (fungus).
+
+Possible symptoms:
+- Spindle-shaped lesions on leaves.
+- Lesions may have grey or whitish centres and darker margins.
+- Neck infection may cause panicles to become partially or completely unfilled.
+
+Favourable conditions:
+Disease development is influenced by humidity,
+temperature, crop variety and nitrogen management.
+
+Monitoring:
+Inspect leaves, nodes and panicle necks.
+Record lesion appearance and spread across the field.
+
+2. BACTERIAL LEAF BLIGHT
+
+Causal organism:
+Xanthomonas oryzae pv. oryzae (bacterium).
+
+Possible symptoms:
+- Yellowing and drying beginning near leaf tips or margins.
+- Wavy lesions extending along leaf edges.
+- Severe infection may cause extensive leaf drying.
+
+Monitoring:
+Inspect leaf margins and tips.
+Observe whether lesions expand along the leaves.
+Record affected field areas and crop stage.
+
+3. BROWN SPOT
+
+Causal organism:
+Bipolaris oryzae (fungus).
+
+Possible symptoms:
+- Brown, circular or oval spots on leaves.
+- Spots may have lighter centres and darker margins.
+- Grain discoloration may occur in affected crops.
+
+Monitoring:
+Inspect leaves and grains for characteristic spots.
+Consider soil fertility and crop condition when assessing risk.
+
+4. SHEATH BLIGHT
+
+Causal organism:
+Rhizoctonia solani (fungus).
+
+Possible symptoms:
+- Oval or irregular greenish-grey lesions on leaf sheaths.
+- Lesions may develop near the waterline.
+- Infection can spread to leaves and neighbouring tillers.
+
+Monitoring:
+Inspect lower leaf sheaths and plant bases.
+Observe whether lesions spread upward through the canopy.
+
+5. GENERAL DISEASE ADVISORY
+
+Several rice diseases can produce similar symptoms.
+Do not confirm a disease from one visual symptom alone.
+
+Consider crop variety, growth stage, field moisture,
+weather conditions and symptom distribution.
+
+Record affected plant parts and monitor disease progression.
+Seek expert or laboratory confirmation when necessary.
+
+Do not recommend fungicides or bactericides solely
+from AI-generated predictions.
+
+Use locally approved agricultural guidance.

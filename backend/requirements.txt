@@ -20,3 +20,4 @@ python-dotenv==1.2.4
 
 # Persistent farm-history memory (MongoDB)
 pymongo[srv]
+bcrypt==5.0.0

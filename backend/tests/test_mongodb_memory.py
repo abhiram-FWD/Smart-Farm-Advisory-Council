@@ -8,6 +8,25 @@ from pymongo import MongoClient
 from memory import mongodb_memory
 
 
+def test_history_counts_are_filtered_by_farm_id(monkeypatch):
+    class CountCollection:
+        def __init__(self):
+            self.query = None
+
+        def count_documents(self, query):
+            self.query = query
+            return 235
+
+    observations = CountCollection()
+    advisories = CountCollection()
+    monkeypatch.setattr(mongodb_memory, "observations_collection", observations)
+    monkeypatch.setattr(mongodb_memory, "advisories_collection", advisories)
+    assert mongodb_memory.count_farm_observations("farm-a") == 235
+    assert mongodb_memory.count_farm_advisories("farm-b") == 235
+    assert observations.query == {"farm_id": "farm-a"}
+    assert advisories.query == {"farm_id": "farm-b"}
+
+
 @pytest.fixture
 def disposable_memory(monkeypatch):
     uri = os.getenv("AGRIVISION_TEST_MONGODB_URI")
@@ -23,6 +42,7 @@ def disposable_memory(monkeypatch):
     monkeypatch.setattr(mongodb_memory, "farms_collection", test_database["farms"])
     monkeypatch.setattr(mongodb_memory, "observations_collection", test_database["farm_observations"])
     monkeypatch.setattr(mongodb_memory, "advisories_collection", test_database["advisories"])
+    monkeypatch.setattr(mongodb_memory, "users_collection", test_database["users"])
     try:
         yield test_database
     finally:

@@ -1,29 +1,11 @@
-import re
-
-from agents.evidence import (
-    normalize_passages,
-    passage_is_relevant,
-    public_source,
-    retrieved_passages_conflict,
-    validate_excerpt_items,
-    validate_recommendations,
-)
+"""Crop-aware soil guidance grounded in local agricultural passages."""
+from agents.evidence import claim_has_source_support, normalize_passages, passage_is_relevant, public_source, retrieved_passages_conflict
 from tools.soil_tool import get_soil_report
 
 
-def soil_agent(
-    moisture: float,
-    ph: float,
-    nitrogen: float,
-    phosphorus: float,
-    potassium: float,
-    historical_context: str = "",
-    *,
-    crop_name: str = "",
-    knowledge_searcher=None,
-    llm_json=None,
-):
-    """Report measurements, preliminary rules, and source-linked excerpts."""
+def soil_agent(moisture, ph, nitrogen, phosphorus, potassium, historical_context="", *,
+               crop_name="", growth_stage="", soil_type="", knowledge_searcher=None,
+               llm_json=None):
     if knowledge_searcher is None:
         from rag.knowledge_base import search_knowledge
         knowledge_searcher = search_knowledge
@@ -32,158 +14,87 @@ def soil_agent(
         llm_json = ask_groq_json
 
     report = get_soil_report(moisture, ph, nitrogen, phosphorus, potassium)
+    query = f"{crop_name} {growth_stage} soil moisture pH nutrients soil testing crop impact corrective management"
+    retrieval_error = False
+    try:
+        passages = normalize_passages(knowledge_searcher(query, crop=crop_name or None, category="soil"))
+    except Exception:
+        passages, retrieval_error = [], True
+    relevant = [p for p in passages if passage_is_relevant(p, query, crop=crop_name or None, category="soil")]
+    by_id = {p["evidence_id"]: p for p in relevant}
+    source_conflict = retrieved_passages_conflict(relevant)
+
     indicators = []
-    if moisture < 30:
-        indicators.append("Low soil moisture")
-    if ph < 5.5:
-        indicators.append("Soil may be too acidic")
-    elif ph > 7.5:
-        indicators.append("Soil may be too alkaline")
+    crop_context = f"{crop_name or 'the crop'}{f' at {growth_stage}' if growth_stage else ''}"
+    if isinstance(moisture, (int, float)) and moisture < 30:
+        indicators.append({"risk": "Low soil moisture",
+                           "impact": f"Below a preliminary 30% screen. Low moisture can limit water uptake and stress {crop_context}.",
+                           "recommended_action": f"Check moisture around {crop_context}'s roots; irrigate only if the root zone is dry and useful rain is not expected.",
+                           "priority": "high", "classification": "preliminary_rule_indicator"})
+    elif isinstance(moisture, (int, float)) and moisture > 80:
+        indicators.append({"risk": "Soil moisture is high on the submitted scale.",
+                           "impact": f"If this reflects saturated field soil, {crop_context} roots may have less air and waterlogging risk can rise.",
+                           "recommended_action": "Pause irrigation and check drainage and standing water before adding more water.",
+                           "priority": "medium", "classification": "preliminary_rule_indicator"})
+    if isinstance(ph, (int, float)) and ph < 5.5:
+        indicators.append({"risk": "Soil may be too acidic", "impact": f"Preliminary pH screen. Acidity can affect nutrient availability for {crop_context}.", "recommended_action": f"Confirm pH with a soil test and get a local amendment recommendation for {crop_name or 'this crop'} before applying lime or other products.", "priority": "medium", "classification": "preliminary_rule_indicator"})
+    elif isinstance(ph, (int, float)) and ph > 7.5:
+        indicators.append({"risk": "Soil may be too alkaline", "impact": f"Preliminary pH screen. Alkalinity can affect nutrient availability for {crop_context}.", "recommended_action": f"Confirm pH with a soil test and ask a local adviser which amendment, if any, suits {crop_name or 'this crop'} and the soil.", "priority": "medium", "classification": "preliminary_rule_indicator"})
 
-    query = (
-        f"Soil moisture {moisture}, pH {ph}; crop {crop_name or 'unspecified'}. "
-        "Evidence about interpreting soil measurements and soil management."
-    )
-    raw_results = knowledge_searcher(
-        query,
-        crop=crop_name or None,
-        category="soil",
-    )
-    retrieved = normalize_passages(raw_results)
-    relevant = [
-        item for item in retrieved
-        if passage_is_relevant(item, query, crop=crop_name or None, category="soil")
-    ]
-    retrieved_context = "\n\n".join(
-        f"Evidence ID: {item['evidence_id']}\nSource: {item['source']}\n"
-        f"Section: {item['section']}\nPassage:\n{item['content']}"
-        for item in relevant
-    )
+    nutrient_note = ("N, P and K values are recorded as supplied. Their units, extraction method and regional crop targets are missing, "
+                     "so no nutrient deficiency or excess can be concluded. Use a soil laboratory report before selecting fertilizer.")
+    fallback = []
+    if indicators:
+        fallback.append({"text": f"Recheck the reading around {crop_context} using the same method and compare it with local crop guidance and field conditions.", "evidence_status": "preliminary_rule_guidance", "sources": []})
+    if any("acidic" in item["risk"].lower() or "alkaline" in item["risk"].lower() for item in indicators):
+        fallback.append({"text": "Confirm pH with a reliable soil test and ask the local extension service which amendment, if any, suits this crop and soil; do not apply lime or acidifying products from this reading alone.", "evidence_status": "preliminary_rule_guidance", "sources": [public_source(p) for p in relevant[:1]]})
+    fallback.append({"text": "Request a laboratory soil test that reports available N, P and K with units and test method, then match recommendations to the crop, growth stage and regional guidance.", "evidence_status": "safe_rule_based_guidance", "sources": [public_source(p) for p in relevant[:1]]})
 
-    accepted_interpretations = []
-    recommendations = []
-    invalid_output = False
-    conflicting = retrieved_passages_conflict(relevant)
-    if relevant and not conflicting:
-        system_prompt = """
-You are an agricultural soil information assistant. Use only the supplied
-retrieved passages. Return a JSON object with exactly these keys:
-{"interpretations": [{"text": "verbatim passage excerpt", "evidence_id": "retrieved ID"}],
- "recommendations": [{"text": "verbatim passage excerpt", "evidence_id": "retrieved ID"}],
- "expert_review_required": true}
-Every text value must be copied verbatim from its cited passage. Do not add
-diagnoses, measurements, citations, or interpretations not stated there. Do not
-interpret unitless nitrogen, phosphorus, or potassium measurements or prescribe
-amendments from them. Use empty arrays when no passage directly supports an item.
-"""
-        user_prompt = f"""Crop context: {crop_name or 'not supplied'}
-Current measurements: moisture={moisture}, pH={ph}.
-Preliminary rule indicators (not diagnoses): {indicators}
-Historical observations: {historical_context or 'None available.'}
-Retrieved passages:
-{retrieved_context}
-Return only the specified JSON object."""
+    narrative, recommendations, llm_status = [], [], "unavailable"
+    if relevant and not source_conflict:
+        context = "\n".join(f"[{p['evidence_id']}] {p['source']} / {p['section']}: {p['content']}" for p in relevant)
         try:
-            model_result = llm_json(system_prompt, user_prompt)
+            result = llm_json(
+                'You are a practical agricultural soil adviser. Give concise plain-language interpretation and actions for the crop. Do not claim N/P/K deficiency from numbers without units, soil-test method and regional reference ranges. Treat moisture and pH rules as preliminary. Cite each item only with evidence IDs supplied. Return JSON: {"findings":[{"text":"...","evidence_ids":["..."]}],"recommendations":[{"text":"...","evidence_ids":["..."]}]}',
+                f"Crop: {crop_name}; stage: {growth_stage}; soil: {soil_type or 'unknown'}. Measurements: moisture {moisture}%, pH {ph}, N {nitrogen}, P {phosphorus}, K {potassium}. Prior farm context: {historical_context or 'none'}.\nSources:\n{context}")
+            if isinstance(result, dict):
+                def accept(items):
+                    accepted = []
+                    if not isinstance(items, list): return accepted
+                    for item in items:
+                        if not isinstance(item, dict) or not isinstance(item.get("text"), str): continue
+                        ids = item.get("evidence_ids", [])
+                        refs = [by_id[x] for x in ids if isinstance(ids, list) and x in by_id]
+                        # Disallow nutrient diagnoses and fertilizer prescriptions absent a usable lab report.
+                        text = item["text"]
+                        low = text.lower()
+                        if any(term in low for term in ("nitrogen deficiency", "phosphorus deficiency", "potassium deficiency", "low nitrogen", "low phosphorus", "low potassium", "apply fertilizer", "apply urea")):
+                            continue
+                        if not refs or not claim_has_source_support(text, refs): continue
+                        accepted.append({"text": text.strip(), "evidence_status": "source_supported_interpretation" if refs else "contextual_guidance", "sources": [public_source(p) for p in refs]})
+                    return accepted
+                narrative, recommendations = accept(result.get("findings")), accept(result.get("recommendations"))
+                llm_status = "success"
         except Exception:
-            model_result = None
-        required = {"interpretations", "recommendations", "expert_review_required"}
-        if (
-            not isinstance(model_result, dict)
-            or set(model_result) != required
-            or not isinstance(model_result.get("expert_review_required"), bool)
-        ):
-            invalid_output = True
-        else:
-            accepted_interpretations, rejected_interpretations = validate_excerpt_items(
-                model_result["interpretations"], relevant
-            )
-            recommendations, rejected_recommendations = validate_recommendations(
-                model_result["recommendations"], relevant
-            )
-            invalid_output = rejected_interpretations or rejected_recommendations
-    else:
-        # Do not invoke a model when retrieval is absent, irrelevant, or conflicting.
-        model_result = None
-
-    nutrient_classification = re.compile(
-        r"\b(?:nitrogen|phosphorus|potassium|NPK|nutrient(?:s)?)\b", re.I
-    )
-    unsupported_nutrient_finding = re.compile(
-        r"\b(?:low|high|deficien\w*|excess\w*|adequate|inadequate|"
-        r"sufficient|insufficient|suboptimal|optimal|optimum|balanced|imbalanced|unbalanced|"
-        r"lacking|lack(?:s|ing)?|shortage|shortfall|not enough|too little|too much|"
-        r"within (?:an? )?(?:acceptable|optimal|normal|target|recommended) range|"
-        r"below (?:the )?(?:required|recommended|target|optimal)?\s*level|"
-        r"above (?:the )?(?:required|recommended|target|optimal)?\s*level)\b", re.I
-    )
-    amendment_material = re.compile(
-        r"\b(?:fertili[sz]\w*|urea|manure|compost|lime|soil amendments?|"
-        r"nutrient amendments?|NPK blends?|top[- ]dress(?:ing)?)\b", re.I
-    )
-    nutrient_application = re.compile(
-        r"\b(?:apply|application|dose|dosing|use|add|increase|boost|"
-        r"supplement|recommend\w*)\b", re.I
-    )
-    accepted_interpretations = [
-        item for item in accepted_interpretations
-        if not (
-            nutrient_classification.search(item["text"])
-            and unsupported_nutrient_finding.search(item["text"])
-        )
-    ]
-    recommendations = [
-        item for item in recommendations
-        if not (
-            amendment_material.search(item["text"])
-            or nutrient_classification.search(item["text"])
-            and nutrient_application.search(item["text"])
-        )
-    ]
-    sufficiently_supported = bool(accepted_interpretations or recommendations)
-    insufficient = not relevant or conflicting or invalid_output or not sufficiently_supported
-
-    if not relevant:
-        summary = "Insufficient relevant retrieved evidence to support a soil interpretation or recommendation."
-    elif conflicting:
-        summary = "Retrieved soil passages conflict; expert review is required before interpretation."
-    elif invalid_output or not sufficiently_supported:
-        summary = "Retrieved evidence did not support a validated interpretation or recommendation."
-    else:
-        summary = "The listed statements are verbatim excerpts from the cited retrieved soil passages."
-
+            llm_status = "provider_error"
+    if not recommendations:
+        recommendations = fallback
+    if indicators and not narrative:
+        narrative = [{"text": f"{i['risk']} {i['impact']}", "evidence_status": "preliminary_rule_indicator", "sources": []} for i in indicators]
     return {
-        "agent": "Soil Agent",
-        "soil_report": report,
-        "identified_risks": indicators,
-        "preliminary_rule_indicators": indicators,
-        "indicator_context": (
-            "Moisture and pH indicators use fixed preliminary rules. Their interpretation "
-            "depends on measurement method, crop, soil and local conditions; they are not diagnoses."
-        ),
-        "nutrient_interpretation_note": (
-            "Nutrient measurements are preserved as submitted but are not interpreted because "
-            "their units and soil-test method were not provided. Interpretation also requires "
-            "crop requirements and applicable regional recommendations."
-        ),
-        "ai_identified_risks": [item["text"] for item in accepted_interpretations],
-        "ai_risk_evidence": [
-            {"text": item["text"], "evidence_status": item["evidence_status"], "sources": item["sources"]}
-            for item in accepted_interpretations
-        ],
-        "recommendations": [item["text"] for item in recommendations],
-        "recommendation_evidence": [
-            {"text": item["text"], "evidence_status": item["evidence_status"], "sources": item["sources"]}
-            for item in recommendations
-        ],
-        "soil_health_summary": summary,
-        "evidence_status": "insufficient" if insufficient else "source_excerpt",
-        "retrieval_conflict": conflicting,
-        "expert_review_required": insufficient or bool(
-            model_result and model_result.get("expert_review_required")
-        ),
-        "retrieved_sources": [public_source(item) for item in retrieved],
-        "evidence_sources": [public_source(item) for item in relevant],
-        "historical_context_used": bool(historical_context),
-        "status": "completed",
+        "agent": "Soil Agent", "status": "completed", "execution_status": "completed",
+        "soil_report": report, "assessment_context": {"crop_name": crop_name, "growth_stage": growth_stage, "soil_type": soil_type, "nutrients_interpreted": False},
+        "identified_risks": [item["risk"] for item in indicators],
+        "preliminary_rule_indicators": [item["risk"] for item in indicators],
+        "rule_indicator_details": indicators,
+        "ai_identified_risks": [x["text"] for x in narrative], "ai_risk_evidence": narrative,
+        "recommendations": [x["text"] for x in recommendations], "recommendation_evidence": recommendations,
+        "soil_health_summary": " ".join(x["text"] for x in narrative) or "No clear moisture or pH screening flag was found. N, P and K still need a test report with units and method.",
+        "nutrient_interpretation_note": nutrient_note, "indicator_context": "Moisture and pH flags are preliminary screening indicators; confirm the measurement method and local crop guidance.",
+        "evidence_status": "conflicting_sources" if source_conflict else "source_supported" if relevant else "rule_based_fallback", "quality_status": "degraded" if source_conflict else "validated" if relevant and llm_status == "success" else "degraded",
+        "quality_reason": "conflicting_sources" if source_conflict else None if relevant and llm_status == "success" else "rule_based_fallback", "llm_status": llm_status,
+        "retrieval_status": "unavailable" if retrieval_error else "available" if relevant else "no_relevant_sources",
+        "retrieved_sources": [public_source(p) for p in passages], "evidence_sources": [public_source(p) for p in relevant],
+        "next_steps": ["Record the units, test method and sampling depth with each soil result.", "Use a local soil laboratory or extension service to turn N/P/K results into crop-specific rates."],
+        "expert_review_required": bool(indicators) or source_conflict, "retrieval_conflict": source_conflict, "historical_context_used": bool(historical_context),
     }

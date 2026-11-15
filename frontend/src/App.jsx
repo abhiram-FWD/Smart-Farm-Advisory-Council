@@ -1,9 +1,15 @@
 import { Navigate, Route, Routes } from 'react-router-dom';
 import AppShell from './components/AppShell.jsx';
 import LandingPage from './components/LandingPage.jsx';
+import PublicDemo from './components/PublicDemo.jsx';
 import { AboutPage, AdvisoryPage, AssessmentPage, AuthPage, CropPage, DashboardPage, FarmProfilePage, HistoryPage, IrrigationPage, SettingsPage, SoilPage, WeatherPage } from './components/Pages.jsx';
+import { useFarm } from './context/FarmContext.jsx';
 
-function Inside({ children }) { return <AppShell>{children}</AppShell>; }
+function Inside({ children }) {
+  const { credentialFarmId, account, accountLoading } = useFarm();
+  if (accountLoading) return <p className="loading-note">Checking your account session…</p>;
+  return credentialFarmId || account ? <AppShell>{children}</AppShell> : <Navigate to="/login" replace />;
+}
 
 export default function App() {
   return <Routes>
@@ -11,6 +17,8 @@ export default function App() {
     <Route path="/login" element={<AuthPage />} />
     <Route path="/signup" element={<AuthPage signup />} />
     <Route path="/about" element={<AboutPage />} />
+    <Route path="/demo" element={<PublicDemo />} />
+    <Route path="/demo/:section" element={<PublicDemo />} />
     <Route path="/dashboard" element={<Inside><DashboardPage /></Inside>} />
     <Route path="/farm" element={<Inside><FarmProfilePage /></Inside>} />
     <Route path="/assessment" element={<Inside><AssessmentPage /></Inside>} />

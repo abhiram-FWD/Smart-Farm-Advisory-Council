@@ -10,8 +10,9 @@ import agents.farm_agents_plugin as plugin_module
 
 @pytest.mark.asyncio
 async def test_semantic_kernel_agent_invocation(monkeypatch):
-    monkeypatch.setattr(plugin_module, "weather_agent", lambda latitude, longitude: {
+    monkeypatch.setattr(plugin_module, "weather_agent", lambda latitude, longitude, **context: {
         "status": "completed", "agent": "Weather Agent",
+        "farm_context": context,
         "forecast": {"source": "isolated fixture", "daily_forecast": {
             "precipitation_sum": [0, 0, 0], "time": ["2026-01-01"],
             "temperature_2m_max": [20], "temperature_2m_min": [10],
@@ -56,13 +57,18 @@ async def test_semantic_kernel_agent_invocation(monkeypatch):
         function_name="get_weather_advisory",
         arguments=KernelArguments(
             latitude=farm_data["latitude"],
-            longitude=farm_data["longitude"]
+            longitude=farm_data["longitude"],
+            crop_name=farm_data["crop_name"],
+            growth_stage=farm_data["growth_stage"],
+            soil_moisture=farm_data["soil_moisture"],
+            symptoms=farm_data["symptoms"],
         )
     )
 
     weather_result = weather.value
 
     assert weather_result.get("status") == "completed"
+    assert weather_result["farm_context"]["crop_name"] == farm_data["crop_name"]
 
     forecast = weather_result["forecast"]["daily_forecast"]
     rainfall = forecast.get("precipitation_sum")

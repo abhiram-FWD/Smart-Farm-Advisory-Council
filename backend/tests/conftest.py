@@ -8,6 +8,11 @@ class InMemoryCollection:
 
     def __init__(self):
         self.records = {}
+        self.metadata = {}
+
+    def modify(self, metadata=None):
+        if metadata is not None:
+            self.metadata = dict(metadata)
 
     def _matches(self, metadata, where):
         if not where:

@@ -7,6 +7,306 @@ html[data-theme=dark]{filter:none;--ivory:#242b26;--paper:#2b332d;--charcoal:#e8
 @media(max-width:430px){.hero-copy h1{font-size:2.25rem}.hero-panel{padding:19px}.slideshow{min-height:250px}.agent-card{padding:18px 14px}.agent-card h3{font-size:1rem}.agent-card p{font-size:.7rem}.farm-details{grid-template-columns:1fr 1fr}.farm-details>div{padding:14px 12px}.farm-details strong{font-size:.69rem}.form-grid,.form-grid.three{grid-template-columns:1fr}.form-grid.three label:last-child,.full-width{grid-column:span 1}.metric-grid strong{font-size:1.25rem}.preview-metrics{grid-template-columns:1fr}.preview-top{display:grid}.forecast-row{grid-template-columns:1fr 1fr;text-align:left}.forecast-row .rain-track{grid-column:span 1}.forecast-row>span:last-child{text-align:left}}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
 .slide-fallback{position:absolute;inset:0;display:grid;place-items:center;padding:25px;background:#536a53;color:white;text-align:center;font:1.25rem var(--serif)}
+/* Public read-only sample demo */
+.public-demo{min-height:100vh;background:var(--ivory)}.public-demo-header{height:74px;padding:0 6%;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--line);background:#f4f2ea}.public-demo-header>div{display:flex;align-items:center;gap:22px}.public-demo-header .button{min-height:38px}.public-demo-layout{display:grid;grid-template-columns:245px minmax(0,1fr);max-width:1480px;margin:0 auto}.public-demo-nav{padding:35px 20px 30px 28px;border-right:1px solid var(--line);background:#eeece3}.public-demo-nav>strong{display:block;color:var(--forest);font:1.2rem/1.3 var(--serif);margin:9px 0 27px}.public-demo-nav nav{display:grid;gap:3px}.public-demo-nav nav a{padding:10px 12px;color:#667064;font-size:.76rem}.public-demo-nav nav a.active,.public-demo-nav nav a:hover{background:#e1e0d4;color:var(--forest)}.public-demo-main{min-width:0;padding:28px clamp(22px,5vw,70px) 65px}.demo-readonly-banner{display:flex;flex-wrap:wrap;align-items:center;gap:7px 15px;padding:13px 16px;margin-bottom:34px;background:#eeede4;border-left:3px solid #9b9d85;color:#636c5e;font-size:.7rem;line-height:1.5}.demo-readonly-banner strong{font-size:.63rem;letter-spacing:.1em;color:var(--forest)}.public-demo-main .page-title-row{margin-bottom:25px}.demo-create-cta{margin-top:28px;padding:27px;background:#e8e6db;border:1px solid var(--line)}.demo-create-cta h2{font:1.65rem var(--serif);font-weight:400;color:var(--forest);margin:8px 0}.demo-create-cta p{font-size:.78rem;line-height:1.65;color:#697168;max-width:650px}.demo-create-cta .button{margin-top:7px}
+@media(max-width:760px){.public-demo-layout{display:block}.public-demo-nav{padding:17px 5%;border:0;border-bottom:1px solid var(--line)}.public-demo-nav>strong{margin:6px 0 13px}.public-demo-nav nav{display:flex;overflow-x:auto;gap:3px}.public-demo-nav nav a{white-space:nowrap;padding:9px}.public-demo-main{padding:22px 5% 45px}.public-demo-header{height:65px;padding:0 5%}.public-demo-header>div{gap:12px}.public-demo-header .inline-link{font-size:.72rem}}
 /* Farm history uses the existing card, typography and measurement palette. */
 .history-record-list{display:grid;gap:18px}.history-record{padding:4px 0 17px;border-bottom:1px solid var(--line)}.history-record:last-child{border-bottom:0;padding-bottom:0}.history-record>.subtle-line{margin:0 0 12px;padding-top:0;border:0}.history-record>strong{display:block;margin:10px 0 4px;font-size:.72rem;color:var(--forest)}.history-record>p{font-size:.77rem;line-height:1.6;color:#697168}.history-measures{grid-template-columns:repeat(4,minmax(0,1fr));margin:0;background:transparent}.history-measures>div{padding:10px 12px}.history-measures strong{font-size:.72rem}
 @media(max-width:760px){.history-measures{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.account-mobile-action{display:none}@media(max-width:760px){.account-mobile-action{display:inline-flex}}
+.intro-label{display:flex;flex-direction:column;gap:31px}.intro-label-heading{display:flex;align-items:center;gap:18px}.intro-image{position:relative;width:100%;aspect-ratio:.9;margin:0;overflow:hidden;background:#a0aa90}.intro-image:after{content:'';position:absolute;inset:45% 0 0;background:linear-gradient(transparent,rgba(20,37,29,.62))}.intro-image img{display:block;width:100%;height:100%;object-fit:cover}.intro-image figcaption{position:absolute;z-index:1;right:18px;bottom:17px;left:18px;display:grid;gap:5px;color:white}.intro-image figcaption span:first-child{font-size:.55rem;letter-spacing:.14em;color:rgba(255,255,255,.8)}.intro-image figcaption span:last-child{font:1.1rem var(--serif)}
+@media(max-width:760px){.intro-label{gap:20px}.intro-image{aspect-ratio:1.7}}
+/* Keep farm and stage selectors visibly interactive and consistent with the app. */
+.app-topbar select,
+.profile-form select { min-height: 38px; max-width: min(100%, 360px); padding: 7px 34px 7px 10px; border: 1px solid var(--line); border-radius: 0; background-color: var(--paper); color: var(--forest); font: inherit; font-size: .78rem; cursor: pointer; }
+.app-topbar select:focus-visible,
+.profile-form select:focus-visible { outline: 3px solid #9caa83; outline-offset: 2px; }
+@media(max-width:760px) { .app-topbar select { max-width: min(48vw, 270px); font-size: .67rem; } }
+.ai-notice{margin:20px 0 0;color:var(--sage);font-size:.78rem;line-height:1.55}
+.weather-impact-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:22px}
+.weather-impact-grid>section{min-width:0}
+.weather-impact-grid>section+section{border-left:1px solid var(--line);padding-left:20px}
+.weather-impact-grid>section>strong{display:block;margin-bottom:9px;color:var(--forest);font-size:.76rem}
+.weather-impact-grid>section>p{margin-top:0}
+.list-source{display:block;margin-top:5px;font-size:.64rem;color:#858a7e}
+.source-details{margin-top:12px;color:#687166;font-size:.68rem}
+.source-details summary{cursor:pointer;color:var(--forest)}
+.source-details .source-wrap{margin-top:9px}
+@media(max-width:760px){.weather-impact-grid{grid-template-columns:1fr;gap:16px}.weather-impact-grid>section+section{border-left:0;border-top:1px solid var(--line);padding:14px 0 0}}
+.result-list li>.small-note{display:block;margin-top:4px}
+.risk-item small{display:block;margin-top:4px}
+/* Dark-theme colour corrections. All rules are scoped to dark mode. */
+html[data-theme=dark] {
+  color-scheme: dark;
+  --ivory: #202923;
+  --paper: #29342d;
+  --charcoal: #e7eee7;
+  --sage: #b5c99f;
+  --olive: #c0c59a;
+  --sand: #a99b80;
+  --line: rgba(220, 234, 222, .19);
+  --shadow: 0 18px 50px rgba(0, 0, 0, .34);
+}
+html[data-theme=dark] body,
+html[data-theme=dark] .app-shell,
+html[data-theme=dark] .landing,
+html[data-theme=dark] .public-about,
+html[data-theme=dark] .public-demo,
+html[data-theme=dark] .auth-page {
+  background: #1d2520;
+  color: #e5ece5;
+}
+html[data-theme=dark] .sidebar { background: #17231c; color: #e5ece5; }
+html[data-theme=dark] .app-topbar,
+html[data-theme=dark] .data-card,
+html[data-theme=dark] .empty-state,
+html[data-theme=dark] .form-card,
+html[data-theme=dark] .preview-frame,
+html[data-theme=dark] .hero-panel,
+html[data-theme=dark] .public-demo-header,
+html[data-theme=dark] .public-demo-nav,
+html[data-theme=dark] .demo-readonly-banner,
+html[data-theme=dark] .demo-create-cta {
+  background: #29342d;
+  color: #e5ece5;
+  border-color: var(--line);
+}
+html[data-theme=dark] .app-footer,
+html[data-theme=dark] .farm-details,
+html[data-theme=dark] .form-section,
+html[data-theme=dark] .agents-section,
+html[data-theme=dark] .preview-metrics>div,
+html[data-theme=dark] .source-tag {
+  background-color: #303b33;
+  border-color: var(--line);
+}
+html[data-theme=dark] .farm-details>div,
+html[data-theme=dark] .agent-grid,
+html[data-theme=dark] .agent-card,
+html[data-theme=dark] .metric-grid>div,
+html[data-theme=dark] .form-section,
+html[data-theme=dark] .history-record,
+html[data-theme=dark] .forecast-row,
+html[data-theme=dark] .risk-item,
+html[data-theme=dark] .preview-top,
+html[data-theme=dark] .capability-list>div,
+html[data-theme=dark] .capability-list>div:first-child {
+  border-color: var(--line);
+}
+html[data-theme=dark] .page-title-row h1,
+html[data-theme=dark] .card-heading h2,
+html[data-theme=dark] .metric-grid strong,
+html[data-theme=dark] .large-value,
+html[data-theme=dark] .farm-details strong,
+html[data-theme=dark] .form-submit-row strong,
+html[data-theme=dark] .empty-state h2,
+html[data-theme=dark] .preview-body h3,
+html[data-theme=dark] .preview-metrics strong,
+html[data-theme=dark] .agent-card h3,
+html[data-theme=dark] .workflow-steps h3,
+html[data-theme=dark] .intro h2,
+html[data-theme=dark] .section-heading h2,
+html[data-theme=dark] .workflow h2,
+html[data-theme=dark] .capability-inner h2,
+html[data-theme=dark] .preview-heading h2,
+html[data-theme=dark] .public-demo-nav>strong,
+html[data-theme=dark] .demo-readonly-banner strong,
+html[data-theme=dark] .demo-create-cta h2,
+html[data-theme=dark] .auth-form-wrap h1,
+html[data-theme=dark] .risk-item strong,
+html[data-theme=dark] .meter-row strong,
+html[data-theme=dark] .forecast-row strong {
+  color: #e7eee7;
+}
+html[data-theme=dark] .app-topbar strong,
+html[data-theme=dark] .page-title-row p,
+html[data-theme=dark] .data-card p,
+html[data-theme=dark] .result-list,
+html[data-theme=dark] .farm-details span,
+html[data-theme=dark] .metric-grid small,
+html[data-theme=dark] .metric-grid i,
+html[data-theme=dark] .large-value i,
+html[data-theme=dark] .subtle-line,
+html[data-theme=dark] .muted,
+html[data-theme=dark] .memory-note,
+html[data-theme=dark] .small-note,
+html[data-theme=dark] .empty-state p,
+html[data-theme=dark] .field-help,
+html[data-theme=dark] .profile-form>label,
+html[data-theme=dark] .form-grid label,
+html[data-theme=dark] .auth-form label,
+html[data-theme=dark] .form-submit-row span,
+html[data-theme=dark] .form-submit-row small,
+html[data-theme=dark] .loading-note,
+html[data-theme=dark] .meter-row span,
+html[data-theme=dark] .forecast-row,
+html[data-theme=dark] .risk-item p,
+html[data-theme=dark] .risk-item small,
+html[data-theme=dark] .source-details,
+html[data-theme=dark] .list-source,
+html[data-theme=dark] .demo-create-cta p,
+html[data-theme=dark] .auth-form-wrap>p,
+html[data-theme=dark] .auth-divider,
+html[data-theme=dark] .toggle-row,
+html[data-theme=dark] .app-footer,
+html[data-theme=dark] .landing-footer p,
+html[data-theme=dark] .landing-footer small,
+html[data-theme=dark] .footer-links,
+html[data-theme=dark] .preview-top,
+html[data-theme=dark] .preview-metrics small,
+html[data-theme=dark] .preview-actions span,
+html[data-theme=dark] .preview-metrics span,
+html[data-theme=dark] .section-heading>p,
+html[data-theme=dark] .intro p,
+html[data-theme=dark] .workflow-steps p,
+html[data-theme=dark] .agent-card p,
+html[data-theme=dark] .agent-num,
+html[data-theme=dark] .workflow-index,
+html[data-theme=dark] .workflow-arrow,
+html[data-theme=dark] .agent-mark,
+html[data-theme=dark] .hero-description,
+html[data-theme=dark] .hero-note,
+html[data-theme=dark] .closing-cta>p,
+html[data-theme=dark] .public-demo-nav nav a {
+  color: #b9c6ba;
+}
+html[data-theme=dark] .eyebrow,
+html[data-theme=dark] .inline-link,
+html[data-theme=dark] .text-button,
+html[data-theme=dark] .source-details summary,
+html[data-theme=dark] .auth-switch a,
+html[data-theme=dark] .form-section>.eyebrow,
+html[data-theme=dark] .optional-label,
+html[data-theme=dark] .capability-list span,
+html[data-theme=dark] .capability-list b {
+  color: #bfd2ad;
+}
+html[data-theme=dark] .inline-link:hover,
+html[data-theme=dark] .text-button:hover,
+html[data-theme=dark] .source-details summary:hover,
+html[data-theme=dark] .public-demo-nav nav a:hover {
+  color: #edf4e9;
+}
+html[data-theme=dark] .button,
+html[data-theme=dark] .button-light {
+  background-color: #41694e;
+  border-color: #739478;
+  color: #ffffff;
+}
+html[data-theme=dark] .button:hover,
+html[data-theme=dark] .button-light:hover {
+  background-color: #527d5d;
+  border-color: #9bb79a;
+  color: #ffffff;
+}
+html[data-theme=dark] .button-outline {
+  background-color: transparent;
+  border-color: #9caf9d;
+  color: #e2ebe1;
+}
+html[data-theme=dark] .button-outline:hover {
+  background-color: #3c5542;
+  border-color: #a9c2a7;
+  color: #ffffff;
+}
+html[data-theme=dark] .side-link { color: #c2cec3; }
+html[data-theme=dark] .side-link:hover,
+html[data-theme=dark] .side-link.active { background-color: #34483a; color: #ffffff; }
+html[data-theme=dark] .side-index,
+html[data-theme=dark] .sidebar-caption,
+html[data-theme=dark] .sidebar-bottom,
+html[data-theme=dark] .sidebar-bottom .text-button { color: #b5c3b5; }
+html[data-theme=dark] input,
+html[data-theme=dark] select,
+html[data-theme=dark] textarea {
+  color-scheme: dark;
+  background-color: #202923;
+  border-color: #59685d;
+  color: #e7eee7;
+}
+html[data-theme=dark] input::placeholder,
+html[data-theme=dark] textarea::placeholder { color: #9eada0; opacity: 1; }
+html[data-theme=dark] select option { background-color: #202923; color: #e7eee7; }
+html[data-theme=dark] input[type=checkbox],
+html[data-theme=dark] input[type=radio] { accent-color: #a9c68c; }
+html[data-theme=dark] input:focus-visible,
+html[data-theme=dark] select:focus-visible,
+html[data-theme=dark] textarea:focus-visible,
+html[data-theme=dark] button:focus-visible,
+html[data-theme=dark] a:focus-visible { outline-color: #d1e69f; }
+html[data-theme=dark] .toggle-row input { background-color: transparent; }
+html[data-theme=dark] .app-topbar select,
+html[data-theme=dark] .profile-form select { background-color: #202923; border-color: #68796b; color: #e7eee7; }
+html[data-theme=dark] .success-text { color: #a8d3a9; }
+html[data-theme=dark] .danger-text { color: #f0aa98; }
+html[data-theme=dark] .error-message { background-color: #482f2b; border-color: #bd796b; color: #f2d3ca; }
+html[data-theme=dark] .success-message { background-color: #263d2e; border-color: #79a783; color: #d1ead2; }
+html[data-theme=dark] .info-message { background-color: #343b31; border-color: #aaa879; color: #e3e2c9; }
+html[data-theme=dark] .risk-mark { background-color: #3e362b; border-color: #c6a879; color: #f0d19f; }
+html[data-theme=dark] .meter-track,
+html[data-theme=dark] .rain-track { background-color: #465148; }
+html[data-theme=dark] .meter-track span,
+html[data-theme=dark] .rain-track i { background-color: #91b17f; }
+html[data-theme=dark] .preview-actions i { background-color: #465148; }
+html[data-theme=dark] .empty-mark { border-color: #81917f; color: #dce8dc; }
+html[data-theme=dark] .landing-nav.scrolled,
+html[data-theme=dark] .landing-nav nav,
+html[data-theme=dark] .landing-nav:not(.scrolled) nav.open { background-color: #202923; color: #e7eee7; border-color: var(--line); }
+html[data-theme=dark] .landing-nav.scrolled .wordmark-light { color: #e7eee7; }
+html[data-theme=dark] .landing-nav:not(.scrolled) nav.open a,
+html[data-theme=dark] .landing-nav.scrolled nav>a:not(.nav-cta) { color: #dce8dc; }
+html[data-theme=dark] .nav-cta,
+html[data-theme=dark] .scrolled .nav-cta { border-color: #a9b9a8; }
+html[data-theme=dark] .hero-panel { background-color: rgba(34, 45, 37, .97); }
+html[data-theme=dark] .agents-section,
+html[data-theme=dark] .closing-cta,
+html[data-theme=dark] .landing-footer { background-color: #242e27; color: #e7eee7; }
+html[data-theme=dark] .closing-cta { color: #e7eee7; }
+html[data-theme=dark] .capabilities { background-color: #17231c; color: #e7eee7; }
+html[data-theme=dark] .capability-inner h2 { color: #e7eee7; }
+html[data-theme=dark] .capability-inner h2 em,
+html[data-theme=dark] .capability-inner .eyebrow { color: #d4c49e; }
+html[data-theme=dark] .capability-inner>div>p { color: #c4d0c5; }
+html[data-theme=dark] .capability-list>div,
+html[data-theme=dark] .capability-list>div:first-child { border-color: var(--line); }
+html[data-theme=dark] .public-demo-nav nav a.active,
+html[data-theme=dark] .public-demo-nav nav a:hover { background-color: #3a4b3c; color: #ffffff; }
+html[data-theme=dark] .auth-divider:before,
+html[data-theme=dark] .auth-divider:after { background-color: #58675b; }
+html[data-theme=dark] .source-details .source-tag { background-color: #344238; color: #dce7dc; }
+html[data-theme=dark] table,
+html[data-theme=dark] thead,
+html[data-theme=dark] tbody,
+html[data-theme=dark] tr,
+html[data-theme=dark] th,
+html[data-theme=dark] td { background-color: #29342d; border-color: var(--line); color: #e1e9e1; }
+html[data-theme=dark] hr { border-color: var(--line); }
+html[data-theme=dark] .wordmark:not(.wordmark-light),
+html[data-theme=dark] .hero-brand,
+html[data-theme=dark] .hero-copy h1,
+html[data-theme=dark] .closing-cta h2,
+html[data-theme=dark] .history-record>strong { color: #e7eee7; }
+html[data-theme=dark] .wordmark-light { color: #ffffff; }
+html[data-theme=dark] .intro h2 em,
+html[data-theme=dark] .section-heading h2 em,
+html[data-theme=dark] .workflow h2 em,
+html[data-theme=dark] .preview-heading h2 em { color: #c2d0ad; }
+html[data-theme=dark] .workflow-heading>p,
+html[data-theme=dark] .preview-heading>p,
+html[data-theme=dark] .preview-body>div:first-child>p { color: #b9c6ba; }
+html[data-theme=dark] .preview-metrics>div { background-color: #303b33; border-color: var(--line); }
+html[data-theme=dark] .preview-actions i { border-color: transparent; }
+html[data-theme=dark] .app-topbar,
+html[data-theme=dark] .data-card,
+html[data-theme=dark] .empty-state,
+html[data-theme=dark] .form-card,
+html[data-theme=dark] .preview-frame,
+html[data-theme=dark] .hero-panel,
+html[data-theme=dark] .public-demo-header,
+html[data-theme=dark] .public-demo-nav,
+html[data-theme=dark] .demo-readonly-banner,
+html[data-theme=dark] .demo-create-cta { box-shadow: 0 12px 30px rgba(0, 0, 0, .16); }
+html[data-theme=dark] .app-main table { background-color: #29342d; color: #e1e9e1; }
+html[data-theme=dark] .app-main th { background-color: #344238; color: #edf3eb; }
+html[data-theme=dark] .app-main td,
+html[data-theme=dark] .app-main th { border-color: var(--line); }

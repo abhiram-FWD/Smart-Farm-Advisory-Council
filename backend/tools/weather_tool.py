@@ -1,8 +1,12 @@
 
 import math
+import os
 import time
 import requests
 from datetime import datetime, timedelta, timezone
+from dotenv import load_dotenv
+
+load_dotenv()
 
 OPEN_METEO_URL = "https://api.open-meteo.com/v1/forecast"
 
@@ -10,10 +14,7 @@ MET_NORWAY_URL = (
     "https://api.met.no/weatherapi/locationforecast/2.0/compact"
 )
 
-# Configure this through an environment variable in the final deployment.
-MET_NORWAY_USER_AGENT = (
-    "SmartFarmAdvisory/1.0 contact:your-real-contact-email"
-)
+MET_NORWAY_USER_AGENT = os.getenv("MET_NORWAY_USER_AGENT", "AgriVision/1.0")
 
 
 def get_open_meteo_forecast(latitude, longitude):
@@ -28,8 +29,13 @@ def get_open_meteo_forecast(latitude, longitude):
             "precipitation_sum",
             "precipitation_probability_max"
         ],
+        "current": [
+            "temperature_2m", "relative_humidity_2m", "precipitation",
+            "weather_code", "wind_speed_10m",
+        ],
         "timezone": "auto",
-        "forecast_days": 7
+        "past_days": 1,
+        "forecast_days": 7,
     }
 
     response = requests.get(
@@ -42,6 +48,7 @@ def get_open_meteo_forecast(latitude, longitude):
 
     data = response.json()
     daily = data.get("daily")
+    current = data.get("current")
 
     if not isinstance(daily, dict):
         raise ValueError("Invalid Open-Meteo daily forecast")
@@ -58,12 +65,37 @@ def get_open_meteo_forecast(latitude, longitude):
         if not isinstance(daily.get(field), list):
             raise ValueError(f"Missing forecast field: {field}")
 
+    # Keep the last completed local calendar day as observed rainfall and
+    # exclude it from the forward forecast arrays.
+    dates = daily["time"]
+    today = (current or {}).get("time", "")[:10]
+    previous_indices = [index for index, value in enumerate(dates) if isinstance(value, str) and value < today]
+    recent_rainfall = None
+    forecast_indices = list(range(len(dates)))
+    if previous_indices:
+        recent_index = previous_indices[-1]
+        rainfall = daily["precipitation_sum"][recent_index]
+        if isinstance(rainfall, (int, float)) and not isinstance(rainfall, bool) and math.isfinite(rainfall) and rainfall >= 0:
+            recent_rainfall = {
+                "date": dates[recent_index],
+                "precipitation_mm": rainfall,
+                "source": "Open-Meteo historical daily precipitation",
+            }
+        forecast_indices = [index for index, value in enumerate(dates) if isinstance(value, str) and value >= today]
+    forecast_daily = {
+        key: [values[index] for index in forecast_indices]
+        if isinstance(values, list) and len(values) == len(dates) else values
+        for key, values in daily.items()
+    }
+
     return {
         "location": {
             "latitude": latitude,
             "longitude": longitude
         },
-        "daily_forecast": daily,
+        "daily_forecast": forecast_daily,
+        "recent_observed_rainfall": recent_rainfall,
+        "current_conditions": current if isinstance(current, dict) else None,
         "source": "Open-Meteo"
     }
 
@@ -227,17 +259,27 @@ def get_met_norway_forecast(latitude, longitude):
         # precipitation probability in this endpoint.
         daily_forecast["precipitation_probability_max"].append(None)
 
+    instant = parsed_series[0][1].get("instant")
+    current_details = instant.get("details", {}) if isinstance(instant, dict) else {}
+    current = {
+        "time": parsed_series[0][0].isoformat(),
+        "temperature": current_details.get("air_temperature"),
+        "relative_humidity": current_details.get("relative_humidity"),
+        "wind_speed": current_details.get("wind_speed"),
+    }
     return {
         "location": {
             "latitude": latitude,
             "longitude": longitude
         },
         "daily_forecast": daily_forecast,
+        "current_conditions": current,
         "source": "MET Norway",
         "note": (
             "Daily summaries use UTC calendar days and are derived from "
             "non-overlapping forecast intervals. "
-            "Precipitation probability is not available."
+            "Precipitation probability is not available. Current conditions "
+            "are the first provider forecast period, not an independent measurement."
         )
     }
 
@@ -271,7 +313,9 @@ def get_weather_forecast(latitude: float, longitude: float):
     for attempt in range(2):
 
         try:
-            return get_open_meteo_forecast(latitude, longitude)
+            result = get_open_meteo_forecast(latitude, longitude)
+            result["fetched_at"] = datetime.now(timezone.utc).isoformat()
+            return result
 
         except (requests.RequestException, ValueError) as error:
 
@@ -285,6 +329,7 @@ def get_weather_forecast(latitude: float, longitude: float):
 
         result["fallback_used"] = True
         result["primary_provider_error"] = "Primary provider unavailable; fallback forecast supplied."
+        result["fetched_at"] = datetime.now(timezone.utc).isoformat()
 
         return result
 

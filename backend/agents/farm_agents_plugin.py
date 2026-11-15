@@ -21,10 +21,19 @@ class FarmAgentsPlugin:
     def get_weather_advisory(
         self,
         latitude: float,
-        longitude: float
+        longitude: float,
+        crop_name: str = "",
+        growth_stage: str = "",
+        soil_moisture: Any = None,
+        symptoms: list[str] = None,
+        historical_context: str = "",
     ) -> dict:
 
-        return weather_agent(latitude, longitude)
+        return weather_agent(
+            latitude, longitude, crop_name=crop_name, growth_stage=growth_stage,
+            soil_moisture=soil_moisture, symptoms=symptoms or [],
+            historical_context=historical_context,
+        )
 
     @kernel_function(
         name="get_soil_advisory",
@@ -38,7 +47,9 @@ class FarmAgentsPlugin:
         phosphorus: float,
         potassium: float,
         historical_context: str = "",
-        crop_name: str = ""
+        crop_name: str = "",
+        growth_stage: str = "",
+        soil_type: str = "",
     ) -> dict:
 
         return soil_agent(
@@ -49,6 +60,8 @@ class FarmAgentsPlugin:
             potassium,
             historical_context=historical_context,
             crop_name=crop_name,
+            growth_stage=growth_stage,
+            soil_type=soil_type,
         )
 
     @kernel_function(
@@ -80,6 +93,10 @@ class FarmAgentsPlugin:
         expected_rainfall: Any,
         crop_name: str,
         precipitation_probability_max: Any = None,
+        growth_stage: str = "",
+        soil_type: str = "",
+        recent_rainfall_mm: Any = None,
+        recent_rainfall_date: str = "",
     ) -> dict:
 
         return irrigation_agent(
@@ -87,4 +104,8 @@ class FarmAgentsPlugin:
             expected_rainfall=expected_rainfall,
             crop_name=crop_name,
             precipitation_probability_max=precipitation_probability_max,
+            growth_stage=growth_stage,
+            soil_type=soil_type,
+            recent_rainfall_mm=recent_rainfall_mm,
+            recent_rainfall_date=recent_rainfall_date,
         )

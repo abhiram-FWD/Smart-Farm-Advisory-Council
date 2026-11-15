@@ -66,6 +66,30 @@ def test_advisory_route_returns_error_when_advisory_memory_save_warns(
     generate.assert_called_once()
 
 
+def test_weather_route_uses_saved_farm_coordinates_not_client_coordinates(client, monkeypatch):
+    monkeypatch.setattr(main, "get_farm_profile", Mock(return_value={"latitude": 12.9, "longitude": 77.6}))
+    forecast = {"source": "Open-Meteo", "location": {"latitude": 12.9, "longitude": 77.6}}
+    weather = Mock(return_value=forecast)
+    monkeypatch.setattr(main, "get_weather_forecast", weather)
+
+    response = client.get("/api/farms/route-test-farm/weather?latitude=51&longitude=3")
+
+    assert response.status_code == 200
+    assert response.json() == forecast
+    weather.assert_called_once_with(12.9, 77.6)
+
+
+def test_weather_route_does_not_fall_back_to_unsaved_client_coordinates(client, monkeypatch):
+    monkeypatch.setattr(main, "get_farm_profile", Mock(return_value={"latitude": None, "longitude": None}))
+    weather = Mock()
+    monkeypatch.setattr(main, "get_weather_forecast", weather)
+
+    response = client.get("/api/farms/route-test-farm/weather?latitude=51&longitude=3")
+
+    assert response.status_code == 422
+    weather.assert_not_called()
+
+
 def test_advisory_route_keeps_generation_failure_as_502(client, monkeypatch):
     monkeypatch.setattr(
         main,
@@ -119,6 +143,19 @@ def test_advisory_route_keeps_completed_result(client, monkeypatch):
 
     response = client.post("/api/advisory", json=request_payload(), headers=request_headers())
 
+    assert response.status_code == 200
+    assert response.json() == result
+
+
+def test_advisory_route_returns_partial_result_as_successful_assessment(client, monkeypatch):
+    result = {
+        "status": "partial",
+        "agent_failures": [{"agent": "Weather Agent", "message": "Weather output was unavailable."}],
+        "agents": {"soil": {"status": "completed", "recommendations": ["Inspect soil"]}},
+        "weekly_action_list": ["Inspect soil"],
+    }
+    monkeypatch.setattr(main, "generate_farm_advisory", Mock(return_value=result))
+    response = client.post("/api/advisory", json=request_payload(), headers=request_headers())
     assert response.status_code == 200
     assert response.json() == result
 

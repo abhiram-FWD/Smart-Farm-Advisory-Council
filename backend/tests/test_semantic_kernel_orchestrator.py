@@ -9,12 +9,12 @@ import agents.farm_agents_plugin as plugin_module
 
 @pytest.mark.asyncio
 async def test_semantic_kernel_orchestration(monkeypatch):
-    monkeypatch.setattr(plugin_module, "weather_agent", lambda latitude, longitude: {
+    monkeypatch.setattr(plugin_module, "weather_agent", lambda *args, **kwargs: {
         "status": "completed", "agent": "Weather Agent",
         "forecast": {"source": "isolated fixture", "daily_forecast": {
             "precipitation_sum": [0, 0, 0],
             "precipitation_probability_max": [0, 0, 0],
-        }},
+        }, "recent_observed_rainfall": {"date": "2026-06-09", "precipitation_mm": 2.5}},
         "identified_risks": [],
     })
     monkeypatch.setattr(plugin_module, "soil_agent", lambda *args, **kwargs: {
@@ -61,11 +61,13 @@ async def test_semantic_kernel_orchestration(monkeypatch):
 
     assert result["expected_rainfall_next_3_days_mm"] >= 0
     assert irrigation_calls[0]["precipitation_probability_max"] == [0, 0, 0]
+    assert irrigation_calls[0]["recent_rainfall_mm"] == 2.5
+    assert irrigation_calls[0]["recent_rainfall_date"] == "2026-06-09"
 
 
 @pytest.mark.asyncio
 async def test_semantic_kernel_passes_incomplete_rainfall_as_unavailable(monkeypatch):
-    monkeypatch.setattr(plugin_module, "weather_agent", lambda *args: {
+    monkeypatch.setattr(plugin_module, "weather_agent", lambda *args, **kwargs: {
         "status": "completed", "agent": "Weather Agent",
         "forecast": {"source": "isolated fixture", "daily_forecast": {
             "precipitation_sum": [1, None, 3],
@@ -87,4 +89,66 @@ async def test_semantic_kernel_passes_incomplete_rainfall_as_unavailable(monkeyp
     )
 
     assert result["expected_rainfall_next_3_days_mm"] is None
-    assert result["agents"]["irrigation"]["recommended_action"] == "Irrigation guidance unavailable"
+    assert result["agents"]["irrigation"]["recommended_action"] == "Check local forecast before deciding"
+
+
+@pytest.mark.asyncio
+async def test_failed_specialist_is_reported_and_other_outputs_are_preserved(monkeypatch):
+    def unavailable_weather(*args):
+        raise RuntimeError("provider detail must not leak")
+
+    monkeypatch.setattr(plugin_module, "weather_agent", unavailable_weather)
+    monkeypatch.setattr(plugin_module, "soil_agent", lambda *args, **kwargs: {
+        "status": "completed", "soil_report": {"moisture": 35}, "recommendations": [],
+    })
+    monkeypatch.setattr(plugin_module, "crop_health_agent", lambda *args, **kwargs: {
+        "status": "success", "evidence_summary": "No supported finding.",
+    })
+    result = await run_semantic_kernel_orchestration(
+        latitude=12, longitude=77, soil_moisture=35, soil_ph=6.5,
+        nitrogen=10, phosphorus=10, potassium=10, crop_name="Rice",
+        growth_stage="Tillering", symptoms=[],
+    )
+    assert result["status"] == "partial"
+    assert result["agents"]["weather"]["status"] == "failed"
+    assert result["agents"]["weather"]["execution_status"] == "failed"
+    assert result["agents"]["soil"]["soil_report"]["moisture"] == 35
+    assert result["agents"]["pest_disease"]["evidence_summary"] == "No supported finding."
+    assert result["agents"]["irrigation"]["status"] == "completed"
+    assert {failure["agent"] for failure in result["agent_failures"]} == {"weather"}
+    assert "provider detail" not in str(result)
+    assert result["agent_failures"][0]["message"]
+
+
+@pytest.mark.asyncio
+async def test_provider_degradation_is_not_reported_as_a_fully_validated_assessment(monkeypatch):
+    monkeypatch.setattr(plugin_module, "weather_agent", lambda *args, **kwargs: {
+        "status": "completed", "identified_risks": [],
+    })
+    monkeypatch.setattr(plugin_module, "soil_agent", lambda *args, **kwargs: {
+        "status": "completed", "execution_status": "completed",
+        "quality_status": "degraded", "quality_reason": "provider_error",
+        "evidence_status": "insufficient", "recommendations": [],
+    })
+    monkeypatch.setattr(plugin_module, "crop_health_agent", lambda *args, **kwargs: {
+        "status": "success", "quality_status": "validated",
+    })
+    monkeypatch.setattr(plugin_module, "irrigation_agent", lambda **kwargs: {
+        "status": "completed", "recommended_action": "Monitor field conditions",
+    })
+
+    result = await run_semantic_kernel_orchestration(
+        latitude=12, longitude=77, soil_moisture=35, soil_ph=6.5,
+        nitrogen=10, phosphorus=10, potassium=10, crop_name="Rice",
+        growth_stage="Tillering", symptoms=[],
+    )
+
+    assert result["status"] == "partial"
+    assert result["agent_failures"] == []
+    assert result["agents"]["soil"]["evidence_status"] == "insufficient"
+    assert result["agents"]["soil"]["status"] == "partial"
+    assert result["agents"]["soil"]["execution_status"] == "completed"
+    assert result["agent_degradations"] == [{
+        "agent": "soil", "reason": "provider_error",
+        "message": "Agent execution completed, but validated analysis was limited.",
+    }]

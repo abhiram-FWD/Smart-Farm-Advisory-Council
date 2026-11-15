@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta, timezone
 from unittest.mock import Mock
 
-from tools.weather_tool import aggregate_rainfall_if_complete, get_weather_forecast
+from tools.weather_tool import aggregate_rainfall_if_complete, get_open_meteo_forecast, get_weather_forecast
 
 
 def _install_met_timeseries(monkeypatch, timeseries):
@@ -46,7 +46,33 @@ def test_weather_forecast_normalizes_stubbed_primary_provider(monkeypatch):
     assert result["source"] == "Open-Meteo"
     assert result["daily_forecast"] == daily
     assert result["location"] == {"latitude": 31.22, "longitude": 75.77}
+    assert result["fetched_at"]
     request.assert_called_once()
+
+
+def test_open_meteo_separates_completed_recent_rainfall_from_forecast(monkeypatch):
+    daily = {
+        "time": ["2026-06-09", "2026-06-10", "2026-06-11"],
+        "temperature_2m_max": [20, 21, 22],
+        "temperature_2m_min": [10, 11, 12],
+        "precipitation_sum": [4.5, 1, 2],
+        "precipitation_probability_max": [None, 20, 30],
+    }
+    response = Mock()
+    response.json.return_value = {
+        "daily": daily,
+        "current": {"time": "2026-06-10T12:00", "temperature_2m": 20},
+    }
+    response.raise_for_status.return_value = None
+    monkeypatch.setattr("tools.weather_tool.requests.get", Mock(return_value=response))
+    result = get_open_meteo_forecast(12, 77)
+    assert result["recent_observed_rainfall"] == {
+        "date": "2026-06-09",
+        "precipitation_mm": 4.5,
+        "source": "Open-Meteo historical daily precipitation",
+    }
+    assert result["daily_forecast"]["time"] == ["2026-06-10", "2026-06-11"]
+    assert result["daily_forecast"]["precipitation_sum"] == [1, 2]
 
 
 def test_weather_forecast_uses_stubbed_fallback_without_network(monkeypatch):
@@ -92,6 +118,23 @@ def test_met_norway_missing_interval_rainfall_remains_unavailable(monkeypatch):
 
     assert result["daily_forecast"]["precipitation_sum"] == [None]
     assert result["daily_forecast"]["precipitation_probability_max"] == [None]
+
+
+def test_met_norway_uses_configured_user_agent(monkeypatch):
+    import tools.weather_tool as weather_tool
+    response = Mock()
+    response.json.return_value = {"properties": {"timeseries": [{
+        "time": "2026-01-01T00:00:00Z",
+        "data": {"instant": {"details": {"air_temperature": 10}}},
+    }]}}
+    response.raise_for_status.return_value = None
+    request = Mock(return_value=response)
+    monkeypatch.setattr(weather_tool.requests, "get", request)
+    monkeypatch.setattr(weather_tool, "MET_NORWAY_USER_AGENT", "AgriVision-test/contact@example.test")
+
+    weather_tool.get_met_norway_forecast(31.22, 75.75)
+
+    assert request.call_args.kwargs["headers"]["User-Agent"] == "AgriVision-test/contact@example.test"
 
 
 def test_met_timestamps_are_normalized_to_utc_calendar_dates(monkeypatch):

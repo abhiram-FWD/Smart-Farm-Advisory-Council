@@ -6,8 +6,21 @@ import re
 UNAVAILABLE = "Unavailable"
 
 
+class InvalidModelOutputError(ValueError):
+    """The model returned content that could not be parsed as JSON."""
+
+
 def normalize_text(value):
     return " ".join(re.findall(r"\w+", str(value).casefold()))
+
+
+def normalize_crop_id(value):
+    """Normalize crop names/IDs consistently for Chroma metadata filters."""
+    if not isinstance(value, str):
+        return ""
+    normalized = re.sub(r"[^a-z0-9]+", "_", value.casefold()).strip("_")
+    # Common spelling variants used by farmers and existing document names.
+    return {"sugar_cane": "sugarcane", "corn": "maize"}.get(normalized, normalized)
 
 
 def normalize_passages(results):
@@ -40,6 +53,8 @@ def normalize_passages(results):
             "publication_date": item.get("publication_date") or UNAVAILABLE,
             "revision_date": item.get("revision_date") or UNAVAILABLE,
             "source_url": item.get("source_url") or UNAVAILABLE,
+            "source_document_status": item.get("source_document_status") or "unverified",
+            "provenance_status": item.get("provenance_status") or "weak_or_unavailable",
         })
     return passages
 
@@ -49,22 +64,13 @@ def passage_is_relevant(passage, query, crop=None, category=None):
         return False
     if category and passage.get("category") not in {category, "general"}:
         return False
-    if crop and passage.get("crop") not in {crop.casefold().replace(" ", "_"), "general"}:
+    if crop and normalize_crop_id(passage.get("crop")) not in {normalize_crop_id(crop), "general"}:
         return False
-    query_terms = {
-        token for token in normalize_text(query).split()
-        if len(token) > 2 and token not in {
-            "the", "and", "for", "with", "from", "possible", "reported",
-            "current", "identify", "identification", "management", "guide",
-            "agent", "soil", "crop", "pest", "disease", "symptoms",
-            "about", "evidence", "measurement", "measurements", "interpreting",
-            "condition", "conditions", "unspecified",
-        }
-    }
-    if crop:
-        query_terms -= set(normalize_text(crop).split())
-    passage_terms = set(normalize_text(passage["content"]).split())
-    return bool(query_terms & passage_terms)
+    # Chroma has already ranked candidates by semantic similarity. A second
+    # lexical-overlap gate rejects paraphrases and transliterations; keep the
+    # strict crop/category/evaluation-fixture checks, then let cited-output
+    # validators decide whether a claim is supported by the passage itself.
+    return True
 
 
 def find_passage(passages, evidence_id, category=None):
@@ -83,6 +89,29 @@ def exact_source_text(text, passage):
     if not isinstance(text, str) or not text.strip():
         return False
     return normalize_text(text) in normalize_text(passage.get("content", ""))
+
+
+def claim_has_source_support(text, passages, *, min_overlap=0.12):
+    """A light semantic sanity check for paraphrases, without quote matching.
+
+    Model prose may explain a passage in farmer-friendly words. Check for a
+    meaningful shared topic term while keeping valid source IDs and category
+    filters as the primary provenance checks. This is a screening heuristic,
+    not entailment; it should not reject a contextual paraphrase just because
+    the model used different wording.
+    """
+    if not isinstance(text, str) or not text.strip() or not passages:
+        return False
+    ignored = {"this", "that", "with", "from", "into", "their", "there", "which", "when", "where", "will", "may", "can", "could", "should", "would", "about", "because", "after", "before", "also", "more", "less", "some", "only", "your", "crop", "farm", "field", "soil", "plant", "plants", "growth", "stage"}
+    terms = {word for word in normalize_text(text).split() if len(word) > 3 and word not in ignored}
+    if not terms:
+        return False
+    for passage in passages:
+        source_terms = set(normalize_text(passage.get("content", "")).split())
+        overlap = terms & source_terms
+        if overlap and len(overlap) / len(terms) >= min_overlap:
+            return True
+    return False
 
 
 def retrieved_passages_conflict(passages):
@@ -210,6 +239,7 @@ def public_source(passage):
             "section", "crop", "crop_applicability", "category",
             "pest_or_disease_category", "author", "organization",
             "publication_date", "revision_date", "source_url",
+            "provenance_status", "source_document_status",
         )
     }
 

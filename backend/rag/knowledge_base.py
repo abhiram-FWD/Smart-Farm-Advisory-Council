@@ -1,6 +1,10 @@
 
 from pathlib import Path
+import hashlib
 import re
+import threading
+
+from agents.evidence import normalize_crop_id
 
 # --------------------------------------------------
 # 1. PATH CONFIGURATION
@@ -17,6 +21,21 @@ DB_DIR = BASE_DIR.parent / "chroma_db"
 
 client = None
 collection = None
+_index_lock = threading.RLock()
+_INDEX_SCHEMA_VERSION = "2"
+
+
+def _source_fingerprint():
+    """Return a stable fingerprint for the local documents and chunking schema."""
+    digest = hashlib.sha256(_INDEX_SCHEMA_VERSION.encode("utf-8"))
+    for path in sorted(DOCUMENTS_DIR.rglob("*.txt")):
+        relative = path.relative_to(DOCUMENTS_DIR).as_posix()
+        content = path.read_bytes()
+        digest.update(relative.encode("utf-8"))
+        digest.update(b"\0")
+        digest.update(content)
+        digest.update(b"\0")
+    return digest.hexdigest()
 
 
 def _get_collection():
@@ -166,6 +185,7 @@ def load_knowledge_base():
     document_paths = sorted(
         DOCUMENTS_DIR.rglob("*.txt")
     )
+    source_fingerprint = _source_fingerprint()
 
     for file_path in document_paths:
 
@@ -211,6 +231,15 @@ def load_knowledge_base():
             metadatas=metadatas
         )
 
+    # Chroma stores this marker with the collection so a non-empty but stale
+    # index is refreshed when documents or the chunking schema changes.
+    metadata = dict(getattr(knowledge_collection, "metadata", None) or {})
+    metadata.update({
+        "source_fingerprint": source_fingerprint,
+        "index_schema_version": _INDEX_SCHEMA_VERSION,
+    })
+    knowledge_collection.modify(metadata=metadata)
+
     return knowledge_collection.count()
 
 
@@ -235,8 +264,15 @@ def search_knowledge(
     """
 
     knowledge_collection = _get_collection()
-    if knowledge_collection.count() == 0:
-        load_knowledge_base()
+    with _index_lock:
+        metadata = dict(getattr(knowledge_collection, "metadata", None) or {})
+        current_fingerprint = _source_fingerprint()
+        if (
+            knowledge_collection.count() == 0
+            or metadata.get("source_fingerprint") != current_fingerprint
+            or metadata.get("index_schema_version") != _INDEX_SCHEMA_VERSION
+        ):
+            load_knowledge_base()
 
     total_chunks = knowledge_collection.count()
 
@@ -246,7 +282,7 @@ def search_knowledge(
     filters = []
 
     if crop:
-        crop_name = crop.strip().lower().replace(" ", "_")
+        crop_name = normalize_crop_id(crop)
 
         filters.append({
             "$or": [
@@ -296,12 +332,18 @@ def search_knowledge(
         source_path = (DOCUMENTS_DIR / relative_path).resolve() if relative_path else None
         try:
             source_path.relative_to(DOCUMENTS_DIR.resolve())
+            source_text = source_path.read_text(encoding="utf-8")
             local_title = next(
-                (line.strip() for line in source_path.read_text(encoding="utf-8").splitlines() if line.strip()),
+                (line.strip() for line in source_text.splitlines() if line.strip()),
                 "Unavailable",
             )
+            normalized_source = re.sub(r"\s+", " ", source_text).strip()
+            normalized_chunk = re.sub(r"\s+", " ", document).strip()
+            if not normalized_chunk or normalized_chunk not in normalized_source:
+                continue
         except (AttributeError, OSError, ValueError):
             local_title = "Unavailable"
+            continue
 
         metadata.setdefault("title", local_title)
         metadata.setdefault("filename", metadata.get("source", "Unavailable"))
@@ -314,6 +356,14 @@ def search_knowledge(
             "author", "organization", "publication_date", "revision_date", "source_url"
         ):
             metadata.setdefault(field, "Unavailable")
+
+        metadata["source_document_status"] = "verified_local_document"
+        metadata["provenance_status"] = (
+            "metadata_available" if any(
+                metadata.get(field) != "Unavailable"
+                for field in ("author", "organization", "publication_date", "revision_date", "source_url")
+            ) else "weak_or_unavailable"
+        )
 
         evidence_id = f"{metadata.get('relative_path', metadata.get('source', 'unknown'))}::{metadata.get('section', 'Unavailable')}::{metadata.get('chunk', 0)}"
 
@@ -333,6 +383,8 @@ def search_knowledge(
             "publication_date": metadata["publication_date"],
             "revision_date": metadata["revision_date"],
             "source_url": metadata["source_url"],
+            "source_document_status": metadata["source_document_status"],
+            "provenance_status": metadata["provenance_status"],
             "section": metadata["section"],
             "chunk": metadata["chunk"]
         })

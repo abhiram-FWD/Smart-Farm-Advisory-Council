@@ -108,4 +108,5 @@ def test_runtime_database_is_strictly_the_original_database():
         mongodb_memory.farms_collection.database.name,
         mongodb_memory.observations_collection.database.name,
         mongodb_memory.advisories_collection.database.name,
+        mongodb_memory.users_collection.database.name,
     } == {"smart_farm_db"}

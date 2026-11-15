@@ -26,6 +26,7 @@ def test_history_api_with_disposable_mongodb(monkeypatch):
     monkeypatch.setattr(mongodb_memory, "farms_collection", farms)
     monkeypatch.setattr(mongodb_memory, "observations_collection", observations)
     monkeypatch.setattr(mongodb_memory, "advisories_collection", advisories)
+    monkeypatch.setattr(mongodb_memory, "users_collection", test_database["users"])
     mongodb_memory.initialize_memory()
     monkeypatch.setattr(main, "initialize_memory", lambda: None)
 

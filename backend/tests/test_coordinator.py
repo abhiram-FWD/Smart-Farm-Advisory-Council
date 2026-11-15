@@ -48,4 +48,4 @@ def test_incomplete_rainfall_reaches_planner_as_unavailable(monkeypatch):
     )
 
     assert result["expected_rainfall_next_3_days_mm"] is None
-    assert result["agents"]["irrigation"]["recommended_action"] == "Irrigation guidance unavailable"
+    assert result["agents"]["irrigation"]["recommended_action"] == "Check local forecast before deciding"

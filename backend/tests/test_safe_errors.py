@@ -18,6 +18,7 @@ def assessment_kwargs():
         "growth_stage": "vegetative",
         "symptoms": [],
         "farm_id": "safe-error-test-farm",
+        "llm_json": Mock(side_effect=RuntimeError("offline test")),
     }
 
 
@@ -25,6 +26,7 @@ def assessment_kwargs():
 def memory_stubs(monkeypatch):
     monkeypatch.setattr(advisory_manager, "save_farm_observation", Mock(return_value="observation-id"))
     monkeypatch.setattr(advisory_manager, "get_farm_history", Mock(return_value=[]))
+    monkeypatch.setattr(advisory_manager, "count_farm_observations", Mock(return_value=1))
     monkeypatch.setattr(advisory_manager, "save_advisory", Mock(return_value="advisory-id"))
 
 
@@ -154,7 +156,7 @@ def test_persistence_warning_is_safe_and_preserves_generated_advisory(
 
     assert result["status"] == "completed_with_memory_warning"
     assert result["agents"] == generated["agents"]
-    assert result["weekly_action_list"] == []
+    assert result["weekly_action_list"] == ["No action"]
     assert result["memory_warning"] == "Advisory generated, but it could not be saved to farm history."
     assert private_detail not in str(result)
     assert private_detail not in caplog.text

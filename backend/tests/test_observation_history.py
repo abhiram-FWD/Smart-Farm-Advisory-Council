@@ -49,6 +49,11 @@ def test_first_assessment_excludes_its_observation_from_history(monkeypatch):
     )
     monkeypatch.setattr(
         advisory_manager,
+        "count_farm_observations",
+        Mock(return_value=1),
+    )
+    monkeypatch.setattr(
+        advisory_manager,
         "save_advisory",
         Mock(return_value="advisory-id"),
     )
@@ -86,6 +91,7 @@ def test_first_assessment_excludes_its_observation_from_history(monkeypatch):
         growth_stage="vegetative",
         symptoms=[],
         farm_id="first-assessment-test-farm",
+        llm_json=Mock(side_effect=RuntimeError("offline test")),
     )
 
     assert result["status"] == "completed"

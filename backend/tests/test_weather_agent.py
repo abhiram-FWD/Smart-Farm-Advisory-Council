@@ -15,7 +15,7 @@ def _run_one_day_weather(monkeypatch, temperature=20, rainfall=0, probability=0)
     monkeypatch.setattr(
         weather_agent_module, "get_weather_forecast", Mock(return_value=forecast)
     )
-    return weather_agent_module.weather_agent(31.22, 75.75)
+    return weather_agent_module.weather_agent(31.22, 75.75, knowledge_searcher=Mock(return_value=[]), llm_json=Mock())
 
 
 def test_weather_agent_uses_supplied_forecast(monkeypatch):
@@ -35,7 +35,8 @@ def test_weather_agent_uses_supplied_forecast(monkeypatch):
 
     result = weather_agent_module.weather_agent(
         latitude=31.22,
-        longitude=75.77
+        longitude=75.77,
+        knowledge_searcher=Mock(return_value=[]), llm_json=Mock(),
     )
 
     assert result.get("status") == "completed"
@@ -51,6 +52,56 @@ def test_weather_agent_uses_supplied_forecast(monkeypatch):
     fetch.assert_called_once_with(31.22, 75.77)
 
 
+def test_weather_agent_uses_crop_stage_forecast_and_cited_guide_for_actions(monkeypatch):
+    passage = {
+        "evidence_id": "wheat-guide::water::0", "source": "wheat_guide.txt",
+        "title": "Wheat crop advisory guide", "section": "Water management",
+        "crop": "general", "category": "crop",
+        "content": "Hot weather can increase crop water demand for wheat and rice. Check soil moisture before irrigation.",
+    }
+    forecast = {"source": "isolated fixture", "daily_forecast": {
+        "time": ["2026-11-15"], "temperature_2m_max": [36],
+        "temperature_2m_min": [24], "precipitation_sum": [0],
+        "precipitation_probability_max": [0],
+    }}
+    monkeypatch.setattr(weather_agent_module, "get_weather_forecast", Mock(return_value=forecast))
+    llm = Mock(return_value={"summary": "Hot, dry weather may raise water demand during wheat growth.", "risks": [{
+        "risk": "High temperature", "date": "2026-11-15", "priority": "high",
+        "impact": "Heat may increase water stress during wheat vegetative growth.",
+        "recommended_action": "Check root-zone moisture early and irrigate only if the soil is dry.",
+        "evidence_ids": [passage["evidence_id"]],
+    }]})
+    result = weather_agent_module.weather_agent(
+        31.22, 75.75, crop_name="Wheat", growth_stage="Vegetative", soil_moisture=22,
+        symptoms=["wilting"], knowledge_searcher=Mock(return_value=[passage]), llm_json=llm,
+    )
+
+    user_context = llm.call_args.args[1]
+    assert "Wheat" in user_context and "Vegetative" in user_context
+    assert "22" in user_context and "36" in user_context
+    assert result["llm_status"] == "success"
+    assert result["weather_summary"]
+    assert result["identified_risks"][0]["recommended_action"].startswith("Check root-zone")
+    assert result["identified_risks"][0]["sources"][0]["evidence_id"] == passage["evidence_id"]
+
+    cool_forecast = {"source": "isolated fixture", "daily_forecast": {
+        "time": ["2026-11-15"], "temperature_2m_max": [27],
+        "temperature_2m_min": [19], "precipitation_sum": [0],
+        "precipitation_probability_max": [0],
+    }}
+    monkeypatch.setattr(weather_agent_module, "get_weather_forecast", Mock(return_value=cool_forecast))
+    cool_llm = Mock(return_value={"summary": "No marked weather stress is expected for flowering rice.", "risks": []})
+    cool = weather_agent_module.weather_agent(
+        31.22, 75.75, crop_name="Rice", growth_stage="Flowering", soil_moisture=62,
+        knowledge_searcher=Mock(return_value=[passage]), llm_json=cool_llm,
+    )
+    cool_context = cool_llm.call_args.args[1]
+    assert "Rice" in cool_context and "Flowering" in cool_context
+    assert "62" in cool_context and "27" in cool_context
+    assert cool["identified_risks"] == []
+    assert cool["weather_summary"] != result["weather_summary"]
+
+
 def test_missing_rainfall_is_preserved_as_unavailable(monkeypatch):
     forecast = {"source": "isolated test fixture", "daily_forecast": {
         "time": ["2026-01-01", "2026-01-02", "2026-01-03"],
@@ -58,7 +109,7 @@ def test_missing_rainfall_is_preserved_as_unavailable(monkeypatch):
     }}
     monkeypatch.setattr(weather_agent_module, "get_weather_forecast", Mock(return_value=forecast))
 
-    result = weather_agent_module.weather_agent(31.22, 75.75)
+    result = weather_agent_module.weather_agent(31.22, 75.75, knowledge_searcher=Mock(return_value=[]), llm_json=Mock())
 
     assert result["status"] == "completed"
     assert result["forecast"]["daily_forecast"]["precipitation_sum"] == [None, None, None]
@@ -72,7 +123,7 @@ def test_none_and_nonnumeric_rainfall_values_are_unavailable(monkeypatch):
     }}
     monkeypatch.setattr(weather_agent_module, "get_weather_forecast", Mock(return_value=forecast))
 
-    result = weather_agent_module.weather_agent(31.22, 75.75)
+    result = weather_agent_module.weather_agent(31.22, 75.75, knowledge_searcher=Mock(return_value=[]), llm_json=Mock())
 
     assert result["forecast"]["daily_forecast"]["precipitation_sum"] == [1.5, None, None]
 
@@ -90,7 +141,7 @@ def test_missing_or_misaligned_probability_is_not_treated_as_zero(monkeypatch):
             weather_agent_module, "get_weather_forecast", Mock(return_value=forecast)
         )
 
-        result = weather_agent_module.weather_agent(31.22, 75.75)
+        result = weather_agent_module.weather_agent(31.22, 75.75, knowledge_searcher=Mock(return_value=[]), llm_json=Mock())
 
         assert result["forecast"]["daily_forecast"]["precipitation_probability_max"] == [None, None]
 
@@ -139,11 +190,9 @@ def test_unavailable_weather_values_do_not_generate_risk_alerts(monkeypatch, fie
     assert not any(risk["risk"] == alert_name for risk in result["identified_risks"])
 
 
-def test_weather_response_labels_thresholds_as_preliminary_project_indicators(monkeypatch):
+def test_weather_response_explains_the_forecast_is_an_early_estimate(monkeypatch):
     result = _run_one_day_weather(monkeypatch, temperature=35)
 
     note = result["risk_interpretation_note"]
-    assert "preliminary project indicators" in note
-    assert "not universal agricultural thresholds" in note
-    assert "not verified crop-specific warnings" in note
-    assert "not professional agricultural advice" in note
+    assert "estimated from the forecast" in note
+    assert "actual field conditions" in note

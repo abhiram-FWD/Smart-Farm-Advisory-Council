@@ -1,4 +1,4 @@
-from agents.evidence import retrieved_passages_conflict, supports_symptom_risk_relationship
+from agents.evidence import normalize_passages, passage_is_relevant, retrieved_passages_conflict, supports_symptom_risk_relationship
 
 
 def test_conflict_heuristic_detects_differently_worded_opposite_guidance():
@@ -78,3 +78,31 @@ def test_unrelated_uncertainty_does_not_reject_explicit_relationship():
         "Aphids", ["yellow leaves"],
         {"content": "Yellow leaves are associated with Aphids. The relationship between rainfall and yield is unclear."},
     )
+
+
+def test_semantically_ranked_paraphrase_is_not_rejected_by_lexical_gate():
+    passage = {
+        "content": "Water available to roots can decline as the growing medium dries.",
+        "source": "soil-guide.txt",
+        "crop": "wheat",
+        "category": "soil",
+    }
+    assert passage_is_relevant(
+        passage, "soil moisture and crop growth stage", crop="Wheat", category="soil"
+    )
+    assert not passage_is_relevant(
+        passage, "soil moisture", crop="Rice", category="soil"
+    )
+
+
+def test_missing_provenance_is_labeled_without_fabricating_metadata():
+    passage = normalize_passages([{
+        "content": "Soil moisture guidance.",
+        "source": "local-guide.txt",
+        "evidence_id": "local-guide.txt::1::0",
+    }])[0]
+    assert passage["author"] == "Unavailable"
+    assert passage["organization"] == "Unavailable"
+    assert passage["publication_date"] == "Unavailable"
+    assert passage["provenance_status"] == "weak_or_unavailable"
+    assert passage["source_document_status"] == "unverified"

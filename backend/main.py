@@ -239,7 +239,7 @@ def _set_auth_cookie(response: Response, token: str) -> None:
         max_age=AUTH_COOKIE_MAX_AGE,
         httponly=True,
         secure=COOKIE_SECURE,
-        samesite="lax",
+        samesite="none",
         path="/api",
     )
 
@@ -348,8 +348,8 @@ def logout_account(request: Request, response: Response):
     except Exception as error:
         log_failure("Account logout failed.", error)
         raise HTTPException(status_code=503, detail="Could not end the account session.")
-    response.delete_cookie(AUTH_COOKIE_NAME, path="/api", secure=COOKIE_SECURE, httponly=True, samesite="lax")
-    response.delete_cookie(COOKIE_NAME, path="/api", secure=COOKIE_SECURE, httponly=True, samesite="lax")
+    response.delete_cookie(AUTH_COOKIE_NAME, path="/api", secure=COOKIE_SECURE, httponly=True, samesite="none")
+    response.delete_cookie(COOKIE_NAME, path="/api", secure=COOKIE_SECURE, httponly=True, samesite="none")
     return {"logged_out": True}
 
 
@@ -416,7 +416,7 @@ def register_farm(
             max_age=COOKIE_MAX_AGE,
             httponly=True,
             secure=COOKIE_SECURE,
-            samesite="lax",
+            samesite="none",
             path="/api",
         )
 
@@ -450,7 +450,7 @@ def exit_farm_session(request: Request, response: Response):
         path="/api",
         secure=COOKIE_SECURE,
         httponly=True,
-        samesite="lax",
+        samesite="none",
     )
     return {"session_ended": True}
 

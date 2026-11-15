@@ -64,6 +64,8 @@ class MemoryCollection:
 
 @pytest.fixture
 def auth_client(monkeypatch):
+    # These clients use plain HTTP; keep test cookies usable regardless of local deployment env.
+    monkeypatch.setattr(main, "COOKIE_SECURE", False)
     users = MemoryCollection(unique=("email", "session_token_hash"))
     farms = MemoryCollection(unique=("farm_id", "access_token_hash"))
     history = MemoryCollection()
@@ -96,7 +98,7 @@ def test_registration_hashes_password_and_sets_http_only_session(auth_client):
     assert mongodb_memory.verify_password("correct horse battery staple", stored["password_hash"])
     assert "password" not in response.text
     cookie = response.headers["set-cookie"]
-    assert main.AUTH_COOKIE_NAME in cookie and "HttpOnly" in cookie and "SameSite=lax" in cookie
+    assert main.AUTH_COOKIE_NAME in cookie and "HttpOnly" in cookie and "SameSite=none" in cookie
     assert client.get("/api/auth/me").json()["user"]["user_id"] == response.json()["user"]["user_id"]
 
 

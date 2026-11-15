@@ -9,6 +9,8 @@ import main
 
 @pytest.fixture
 def history_client(monkeypatch):
+    # TestClient uses plain HTTP, so Secure cookies would not be sent back by the client.
+    monkeypatch.setattr(main, "COOKIE_SECURE", False)
     monkeypatch.setattr(main, "initialize_memory", Mock())
     monkeypatch.setattr(
         main,
@@ -214,7 +216,7 @@ def test_registration_returns_cookie_without_token_in_response(
     assert "raw-token-for-cookie" not in response.text
     cookie = response.headers["set-cookie"]
     assert "HttpOnly" in cookie
-    assert "SameSite=lax" in cookie
+    assert "SameSite=none" in cookie
     assert "Path=/api" in cookie
     assert "Secure" not in cookie
 

@@ -87,7 +87,7 @@ def test_history_api_with_disposable_mongodb(monkeypatch):
             assert registration.json() == {"farm_id": farm_id, "registered": True}
             assert "HttpOnly" in registration.headers["set-cookie"]
             assert "Path=/api" in registration.headers["set-cookie"]
-            assert "SameSite=lax" in registration.headers["set-cookie"]
+            assert "SameSite=none" in registration.headers["set-cookie"]
 
             raw_token = api_client.cookies.get(main.COOKIE_NAME)
             assert raw_token

@@ -35,14 +35,12 @@ def test_general_rag_retrieval(isolated_knowledge_base):
 def test_nonempty_stale_index_is_refreshed(isolated_knowledge_base):
     knowledge_base = isolated_knowledge_base
     knowledge_base.load_knowledge_base()
-    indexed = knowledge_base._get_collection()
-    indexed.metadata["source_fingerprint"] = "stale-source-fingerprint"
+    knowledge_base._knowledge_index["fingerprint"] = "stale-source-fingerprint"
 
     results = knowledge_base.search_knowledge("soil pH management", category="soil")
 
     assert results
-    assert indexed.metadata["source_fingerprint"] == knowledge_base._source_fingerprint()
-    assert indexed.metadata["index_schema_version"] == knowledge_base._INDEX_SCHEMA_VERSION
+    assert knowledge_base._knowledge_index["fingerprint"] == knowledge_base._source_fingerprint()
 
 
 def test_rag_returns_traceable_provenance_with_unavailable_fields(isolated_knowledge_base):
@@ -64,6 +62,23 @@ def test_rag_returns_traceable_provenance_with_unavailable_fields(isolated_knowl
     assert result["source_url"] == "Unavailable"
     assert result["source_document_status"] == "verified_local_document"
     assert result["provenance_status"] == "weak_or_unavailable"
+
+
+def test_tfidf_retrieval_ranks_relevant_crop_guide_and_returns_citation(isolated_knowledge_base):
+    isolated_knowledge_base.load_knowledge_base()
+    results = isolated_knowledge_base.search_knowledge(
+        "wheat aphids colonies sticky honeydew yellow curling leaves",
+        n_results=3,
+        crop="Wheat",
+        category="pests",
+    )
+
+    assert results
+    assert results[0]["relative_path"] == "pests/wheat_pests.txt"
+    assert "aphids" in results[0]["content"].lower()
+    assert results[0]["source"] == "wheat_pests.txt"
+    assert results[0]["evidence_id"].startswith("pests/wheat_pests.txt::")
+    assert results[0]["source_document_status"] == "verified_local_document"
 
 
 @pytest.mark.parametrize("crop", ["Wheat", "WHEAT", "sugar-cane", "corn"])

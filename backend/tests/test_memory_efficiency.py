@@ -1,4 +1,5 @@
 import asyncio
+import builtins
 import threading
 import time
 from concurrent.futures import ThreadPoolExecutor
@@ -10,74 +11,29 @@ from agents import semantic_kernel_orchestrator as orchestrator
 from rag import knowledge_base
 
 
-def test_chroma_client_collection_and_embedding_function_are_reused(monkeypatch):
-    calls = {"client": 0, "embedding_function": 0, "collection": 0}
-    collection = object()
+def test_tfidf_retrieval_uses_cached_sparse_index_without_heavy_model_imports(
+    isolated_knowledge_base, monkeypatch
+):
+    original_import = builtins.__import__
 
-    class FakeClient:
-        def get_or_create_collection(self, **kwargs):
-            calls["collection"] += 1
-            assert kwargs["embedding_function"] is embedding_function
-            return collection
+    def guarded_import(name, *args, **kwargs):
+        if name == "chromadb" or name.startswith("chromadb.") or name == "onnxruntime":
+            raise AssertionError(f"Heavy embedding dependency imported: {name}")
+        return original_import(name, *args, **kwargs)
 
-    embedding_function = object()
+    monkeypatch.setattr(builtins, "__import__", guarded_import)
+    count = isolated_knowledge_base.load_knowledge_base()
+    first_index = isolated_knowledge_base._knowledge_index
+    assert count > 0
+    assert all(isinstance(chunk["vector"], dict) for chunk in first_index["chunks"])
 
-    def create_client():
-        calls["client"] += 1
-        return FakeClient()
-
-    def create_embedding_function():
-        calls["embedding_function"] += 1
-        return embedding_function
-
-    monkeypatch.setattr(knowledge_base, "client", None)
-    monkeypatch.setattr(knowledge_base, "collection", None)
-    monkeypatch.setattr(knowledge_base, "_embedding_function", None)
-    monkeypatch.setattr(knowledge_base, "_create_chroma_client", create_client)
-    monkeypatch.setattr(
-        knowledge_base,
-        "_create_shared_embedding_function",
-        create_embedding_function,
+    results = isolated_knowledge_base.search_knowledge(
+        "wheat rust yellow orange pustules", crop="Wheat", category="diseases"
     )
 
-    with ThreadPoolExecutor(max_workers=8) as pool:
-        results = list(pool.map(lambda _: knowledge_base._get_collection(), range(16)))
-
-    assert all(result is collection for result in results)
-    assert calls == {"client": 1, "embedding_function": 1, "collection": 1}
-
-
-def test_onnx_embedding_model_is_loaded_once_and_inference_is_serialized(monkeypatch):
-    active_calls = 0
-    max_active_calls = 0
-    create_calls = 0
-    state_lock = threading.Lock()
-
-    class FakeModel:
-        def __call__(self, values):
-            nonlocal active_calls, max_active_calls
-            with state_lock:
-                active_calls += 1
-                max_active_calls = max(max_active_calls, active_calls)
-            time.sleep(0.02)
-            with state_lock:
-                active_calls -= 1
-            return values
-
-    def create_model():
-        nonlocal create_calls
-        create_calls += 1
-        return FakeModel()
-
-    monkeypatch.setattr(knowledge_base, "_embedding_model", None)
-    monkeypatch.setattr(knowledge_base, "_create_onnx_embedding_model", create_model)
-
-    with ThreadPoolExecutor(max_workers=8) as pool:
-        results = list(pool.map(knowledge_base._embed_with_shared_model, [[i] for i in range(8)]))
-
-    assert results == [[i] for i in range(8)]
-    assert create_calls == 1
-    assert max_active_calls == 1
+    assert results
+    assert isolated_knowledge_base._knowledge_index is first_index
+    assert results[0]["source"] == "wheat_diseases.txt"
 
 
 @pytest.mark.asyncio

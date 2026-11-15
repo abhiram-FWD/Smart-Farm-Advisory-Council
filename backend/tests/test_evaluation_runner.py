@@ -174,7 +174,7 @@ def test_report_records_metadata_scenario_data_and_dependency_modes(tmp_path):
     assert report["code_version"] == "unit-test-sha"
     assert report["totals"] == {"scenario_count": 10, "pass": 10, "fail": 0, "blocked": 0}
     assert all("inputs" in item and "scenario_expected" in item for item in report["scenarios"])
-    assert "no ChromaDB opened or modified" in report["dependencies"]["rag"]
+    assert "no embedding model" in report["dependencies"]["rag"]
     assert "real retrieval results" in " ".join(report["limitations"])
     assert "no Groq" in report["dependencies"]["llm"]
     assert "Scenario pass totals are not measures of model accuracy" in contents

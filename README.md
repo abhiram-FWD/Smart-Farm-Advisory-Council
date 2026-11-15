@@ -6,7 +6,7 @@ Agri Vision brings farm observations, weather forecasts, agricultural knowledge 
 
 - Weather, soil, pest and disease retrieval, irrigation and advisory-manager agents.
 - Fan-out/fan-in orchestration with Semantic Kernel.
-- Agricultural RAG retrieval backed by ChromaDB.
+- Agricultural RAG retrieval over the existing guides using a lightweight in-process TF-IDF index.
 - MongoDB Atlas users, farms, observations and advisories stored in the existing `smart_farm_db` database; farm records are scoped to their owner.
 - Responsive frontend for farm assessment and reviewing the returned advisory.
 - HttpOnly account sessions, multiple owned farm profiles, and separate farm-token demo access.
@@ -22,7 +22,7 @@ React + Vite frontend
         └── FastAPI → Advisory Manager
               ├── Weather, Soil, Pest/Disease agents (parallel)
               ├── Irrigation Planner (after forecast fan-in)
-              ├── ChromaDB agricultural knowledge retrieval
+              ├── TF-IDF agricultural knowledge retrieval
               └── MongoDB Atlas farm observations and advisories
 ```
 
@@ -30,7 +30,7 @@ Account registration and login create an HttpOnly session scoped to the user, an
 
 ## Technology
 
-- Backend: Python 3.11, FastAPI, Semantic Kernel, Groq, ChromaDB, MongoDB Atlas, Open-Meteo.
+- Backend: Python 3.11, FastAPI, Semantic Kernel, Groq, TF-IDF retrieval, MongoDB Atlas, Open-Meteo.
 - Frontend: React 18, Vite, React Router, Axios, CSS.
 
 ## Repository layout

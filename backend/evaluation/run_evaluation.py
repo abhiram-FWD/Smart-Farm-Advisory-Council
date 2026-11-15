@@ -298,7 +298,7 @@ def build_report(results, timestamp=None, code_version=None):
         "execution_mode": "deterministic isolated evaluation fixtures",
         "dependencies": {
             "persistence": "in-memory only",
-            "rag": "fixture-backed; no ChromaDB opened or modified",
+            "rag": "fixture-backed; production retrieval uses local sparse TF-IDF; no embedding model",
             "llm": "fixture-backed; no Groq or other live LLM called",
             "weather": "not called; rainfall supplied by scenario inputs",
             "network": "not used by the evaluation runner",

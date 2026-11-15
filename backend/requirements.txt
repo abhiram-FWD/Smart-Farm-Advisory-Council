@@ -8,9 +8,7 @@ pydantic==2.13.5
 semantic-kernel==1.46.0
 openai==3.42.0
 
-# RAG and vector database
-chromadb==1.5.9
-onnxruntime==1.31.1
+# RAG uses an in-process sparse TF-IDF index; no embedding model is required.
 
 # External API requests
 requests==2.34.2

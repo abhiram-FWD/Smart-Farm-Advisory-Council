@@ -1,8 +1,10 @@
 
 from pathlib import Path
 import hashlib
+import math
 import re
 import threading
+from collections import Counter
 
 from agents.evidence import normalize_crop_id
 
@@ -12,63 +14,25 @@ from agents.evidence import normalize_crop_id
 
 BASE_DIR = Path(__file__).resolve().parent
 DOCUMENTS_DIR = BASE_DIR / "documents"
-DB_DIR = BASE_DIR.parent / "chroma_db"
 
 
 # --------------------------------------------------
-# 2. CHROMADB INITIALIZATION
+# 2. LIGHTWEIGHT TF-IDF INDEX
 # --------------------------------------------------
 
-client = None
-collection = None
-_embedding_function = None
-_embedding_model = None
-_resource_lock = threading.RLock()
-_embedding_lock = threading.Lock()
 _index_lock = threading.RLock()
-_INDEX_SCHEMA_VERSION = "2"
-
-
-def _create_chroma_client():
-    import chromadb
-    return chromadb.PersistentClient(path=str(DB_DIR))
-
-
-def _create_onnx_embedding_model():
-    from chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2 import (
-        ONNXMiniLM_L6_V2,
-    )
-    return ONNXMiniLM_L6_V2()
-
-
-def _embed_with_shared_model(input):
-    global _embedding_model
-    with _embedding_lock:
-        if _embedding_model is None:
-            _embedding_model = _create_onnx_embedding_model()
-        return _embedding_model(input)
-
-
-def _create_shared_embedding_function():
-    """Use Chroma's default embedding identity with a process-wide ONNX model."""
-    from chromadb.utils.embedding_functions import DefaultEmbeddingFunction
-
-    class SharedDefaultEmbeddingFunction(DefaultEmbeddingFunction):
-        def __call__(self, input):
-            # Chroma's stock default creates a fresh ONNX embedder for every
-            # call. Keep one model and serialize inference to bound peak RAM.
-            return _embed_with_shared_model(input)
-
-    return SharedDefaultEmbeddingFunction()
-
-
-def _get_embedding_function():
-    global _embedding_function
-    if _embedding_function is None:
-        with _resource_lock:
-            if _embedding_function is None:
-                _embedding_function = _create_shared_embedding_function()
-    return _embedding_function
+_INDEX_SCHEMA_VERSION = "3-tfidf"
+_knowledge_index = {
+    "fingerprint": None,
+    "chunks": [],
+    "idf": {},
+}
+_TOKEN_PATTERN = re.compile(r"[a-z0-9]+")
+_STOP_WORDS = {
+    "a", "an", "and", "are", "as", "at", "be", "before", "for", "from",
+    "how", "in", "into", "is", "it", "of", "on", "or", "the", "this",
+    "to", "what", "when", "which", "with",
+}
 
 
 def _source_fingerprint():
@@ -82,22 +46,6 @@ def _source_fingerprint():
         digest.update(content)
         digest.update(b"\0")
     return digest.hexdigest()
-
-
-def _get_collection():
-    """Open and retain one production Chroma collection per process."""
-    global client, collection
-    if collection is not None:
-        return collection
-    with _resource_lock:
-        if collection is None:
-            if client is None:
-                client = _create_chroma_client()
-            collection = client.get_or_create_collection(
-                name="farm_knowledge_v2",
-                embedding_function=_get_embedding_function(),
-            )
-        return collection
 
 
 # --------------------------------------------------
@@ -217,76 +165,73 @@ def split_into_chunks(text):
 
 
 # --------------------------------------------------
-# 5. LOAD DOCUMENTS INTO CHROMADB
+# 5. LOAD DOCUMENTS INTO THE TF-IDF INDEX
 # --------------------------------------------------
 
-def load_knowledge_base():
+def _tokens(text):
+    return [token for token in _TOKEN_PATTERN.findall(text.lower()) if token not in _STOP_WORDS]
 
-    knowledge_collection = _get_collection()
 
-    documents = []
-    ids = []
-    metadatas = []
+def _build_index(source_fingerprint=None):
+    chunks = []
+    document_frequencies = Counter()
 
-    document_paths = sorted(
-        DOCUMENTS_DIR.rglob("*.txt")
-    )
-    source_fingerprint = _source_fingerprint()
-
-    for file_path in document_paths:
-
+    for file_path in sorted(DOCUMENTS_DIR.rglob("*.txt")):
         content = file_path.read_text(encoding="utf-8")
-
         if not content.strip():
             continue
-
-        chunks = split_into_chunks(content)
-
         document_metadata = extract_document_metadata(file_path, content)
-
-        for index, chunk in enumerate(chunks):
-
-            documents.append(chunk["content"])
-
-            relative_path = document_metadata["relative_path"]
-
-            safe_id = re.sub(
-                r"[^a-zA-Z0-9_-]",
-                "_",
-                relative_path
-            )
-
-            ids.append(f"{safe_id}_{index}")
-
-            metadatas.append({
-                **document_metadata,
-                "chunk": index,
-                "section": chunk["section"]
+        for index, chunk in enumerate(split_into_chunks(content)):
+            terms = Counter(_tokens(chunk["content"]))
+            if not terms:
+                continue
+            document_frequencies.update(terms.keys())
+            chunks.append({
+                "content": chunk["content"],
+                "terms": terms,
+                "metadata": {
+                    **document_metadata,
+                    "chunk": index,
+                    "section": chunk["section"],
+                },
             })
 
-    # Rebuild the collection to remove stale chunks
-    existing_ids = knowledge_collection.get()["ids"]
+    total = len(chunks)
+    idf = {
+        term: math.log((total + 1) / (frequency + 1)) + 1
+        for term, frequency in document_frequencies.items()
+    }
+    for chunk in chunks:
+        weighted_terms = {
+            term: (1 + math.log(count)) * idf[term]
+            for term, count in chunk["terms"].items()
+        }
+        magnitude = math.sqrt(sum(weight * weight for weight in weighted_terms.values())) or 1
+        chunk["vector"] = {term: weight / magnitude for term, weight in weighted_terms.items()}
 
-    if existing_ids:
-        knowledge_collection.delete(ids=existing_ids)
+    return {
+        "fingerprint": source_fingerprint or _source_fingerprint(),
+        "chunks": chunks,
+        "idf": idf,
+    }
 
-    if documents:
-        knowledge_collection.add(
-            documents=documents,
-            ids=ids,
-            metadatas=metadatas
-        )
 
-    # Chroma stores this marker with the collection so a non-empty but stale
-    # index is refreshed when documents or the chunking schema changes.
-    metadata = dict(getattr(knowledge_collection, "metadata", None) or {})
-    metadata.update({
-        "source_fingerprint": source_fingerprint,
-        "index_schema_version": _INDEX_SCHEMA_VERSION,
-    })
-    knowledge_collection.modify(metadata=metadata)
+def _get_index():
+    global _knowledge_index
+    fingerprint = _source_fingerprint()
+    if _knowledge_index["fingerprint"] != fingerprint:
+        with _index_lock:
+            if _knowledge_index["fingerprint"] != fingerprint:
+                _knowledge_index = _build_index(fingerprint)
+    return _knowledge_index
 
-    return knowledge_collection.count()
+
+def load_knowledge_base():
+    """Index all local agricultural guides using sparse TF-IDF vectors."""
+    global _knowledge_index
+    with _index_lock:
+        _knowledge_index = _build_index()
+        return len(_knowledge_index["chunks"])
 
 
 # --------------------------------------------------
@@ -300,7 +245,7 @@ def search_knowledge(
     category=None
 ):
     """
-    Search agricultural knowledge using semantic similarity.
+    Search agricultural knowledge using lightweight TF-IDF similarity.
 
     Optional filters:
         crop: wheat, rice, maize, etc.
@@ -309,86 +254,46 @@ def search_knowledge(
     Crop-specific searches also include general knowledge.
     """
 
-    knowledge_collection = _get_collection()
-    with _index_lock:
-        metadata = dict(getattr(knowledge_collection, "metadata", None) or {})
-        current_fingerprint = _source_fingerprint()
-        if (
-            knowledge_collection.count() == 0
-            or metadata.get("source_fingerprint") != current_fingerprint
-            or metadata.get("index_schema_version") != _INDEX_SCHEMA_VERSION
-        ):
-            load_knowledge_base()
-
-    total_chunks = knowledge_collection.count()
-
-    if total_chunks == 0:
+    index = _get_index()
+    if not index["chunks"]:
         return []
 
-    filters = []
-
-    if crop:
-        crop_name = normalize_crop_id(crop)
-
-        filters.append({
-            "$or": [
-                {"crop": crop_name},
-                {"crop": "general"}
-            ]
-        })
-
-    if category:
-        filters.append({
-            "category": category.strip().lower()
-        })
-
-    where = None
-
-    if len(filters) == 1:
-        where = filters[0]
-
-    elif len(filters) > 1:
-        where = {"$and": filters}
-
-    available = knowledge_collection.get(
-        where=where,
-        include=["metadatas"]
-    )
-
-    available_count = len(available["ids"])
-
-    if available_count == 0:
+    crop_name = normalize_crop_id(crop) if crop else None
+    query_terms = Counter(_tokens(query or ""))
+    if not query_terms:
         return []
+    weighted_query = {
+        term: (1 + math.log(count)) * index["idf"].get(term, 0)
+        for term, count in query_terms.items()
+    }
+    query_magnitude = math.sqrt(sum(weight * weight for weight in weighted_query.values())) or 1
+    weighted_query = {term: weight / query_magnitude for term, weight in weighted_query.items()}
 
-    results = knowledge_collection.query(
-        query_texts=[query],
-        n_results=min(n_results, available_count),
-        where=where
-    )
+    ranked = []
+    for chunk in index["chunks"]:
+        metadata = chunk["metadata"]
+        if category and metadata["category"] != category.strip().lower():
+            continue
+        if crop_name and metadata["crop"] not in {crop_name, "general"}:
+            continue
+        score = sum(weight * chunk["vector"].get(term, 0) for term, weight in weighted_query.items())
+        if score > 0:
+            ranked.append((score, chunk))
+    ranked.sort(key=lambda item: (-item[0], item[1]["metadata"]["relative_path"], item[1]["metadata"]["chunk"]))
 
     matches = []
-
-    for document, metadata in zip(
-        results["documents"][0],
-        results["metadatas"][0]
-    ):
-
-        metadata = dict(metadata or {})
+    for _, chunk in ranked[:max(0, n_results)]:
+        document = chunk["content"]
+        metadata = dict(chunk["metadata"])
         relative_path = metadata.get("relative_path")
         source_path = (DOCUMENTS_DIR / relative_path).resolve() if relative_path else None
         try:
             source_path.relative_to(DOCUMENTS_DIR.resolve())
             source_text = source_path.read_text(encoding="utf-8")
-            local_title = next(
-                (line.strip() for line in source_text.splitlines() if line.strip()),
-                "Unavailable",
-            )
-            normalized_source = re.sub(r"\s+", " ", source_text).strip()
-            normalized_chunk = re.sub(r"\s+", " ", document).strip()
-            if not normalized_chunk or normalized_chunk not in normalized_source:
+            local_title = next((line.strip() for line in source_text.splitlines() if line.strip()), "Unavailable")
+            if not re.sub(r"\s+", " ", document).strip() in re.sub(r"\s+", " ", source_text).strip():
                 continue
         except (AttributeError, OSError, ValueError):
-            local_title = "Unavailable"
             continue
 
         metadata.setdefault("title", local_title)
@@ -443,16 +348,12 @@ def search_knowledge(
 # --------------------------------------------------
 
 def get_knowledge_base_info():
-
-    knowledge_collection = _get_collection()
-
-    documents = sorted(
-        DOCUMENTS_DIR.rglob("*.txt")
-    )
+    index = _get_index()
+    documents = sorted(DOCUMENTS_DIR.rglob("*.txt"))
 
     return {
-        "total_chunks": knowledge_collection.count(),
+        "total_chunks": len(index["chunks"]),
         "total_documents": len(documents),
-        "collection_name": knowledge_collection.name,
+        "collection_name": "agronomy_tfidf_v1",
         "document_directory": str(DOCUMENTS_DIR)
     }

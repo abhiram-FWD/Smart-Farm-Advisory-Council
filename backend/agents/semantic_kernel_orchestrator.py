@@ -1,5 +1,6 @@
 
 import asyncio
+import threading
 
 from semantic_kernel import Kernel
 from semantic_kernel.functions import KernelArguments
@@ -8,21 +9,28 @@ from agents.farm_agents_plugin import FarmAgentsPlugin
 from tools.weather_tool import aggregate_rainfall_if_complete
 
 
+# Bound concurrent specialist work across concurrent API requests too. Each
+# request keeps fan-out/fan-in coordination, while avoiding an unbounded number
+# of model-backed retrievals on small instances.
+_AGENT_EXECUTION_SLOTS = threading.BoundedSemaphore(2)
+
+
 async def invoke_agent(function_name, **arguments):
     """Invoke a Semantic Kernel function without blocking the event loop."""
 
     def run_invocation():
-        # Each fan-out worker gets its own Kernel instance. Kernel invocation
-        # state is not shared between the concurrently running agent threads.
-        kernel = Kernel()
-        kernel.add_plugin(FarmAgentsPlugin(), plugin_name="FarmAgents")
-        return asyncio.run(
-            kernel.invoke(
-                plugin_name="FarmAgents",
-                function_name=function_name,
-                arguments=KernelArguments(**arguments)
+        with _AGENT_EXECUTION_SLOTS:
+            # Kernel invocation state is local to each call, and the bounded
+            # process-wide slots cap memory when requests overlap.
+            kernel = Kernel()
+            kernel.add_plugin(FarmAgentsPlugin(), plugin_name="FarmAgents")
+            return asyncio.run(
+                kernel.invoke(
+                    plugin_name="FarmAgents",
+                    function_name=function_name,
+                    arguments=KernelArguments(**arguments)
+                )
             )
-        )
 
     result = await asyncio.to_thread(run_invocation)
     return result.value

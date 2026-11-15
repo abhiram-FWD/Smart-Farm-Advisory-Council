@@ -21,8 +21,54 @@ DB_DIR = BASE_DIR.parent / "chroma_db"
 
 client = None
 collection = None
+_embedding_function = None
+_embedding_model = None
+_resource_lock = threading.RLock()
+_embedding_lock = threading.Lock()
 _index_lock = threading.RLock()
 _INDEX_SCHEMA_VERSION = "2"
+
+
+def _create_chroma_client():
+    import chromadb
+    return chromadb.PersistentClient(path=str(DB_DIR))
+
+
+def _create_onnx_embedding_model():
+    from chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2 import (
+        ONNXMiniLM_L6_V2,
+    )
+    return ONNXMiniLM_L6_V2()
+
+
+def _embed_with_shared_model(input):
+    global _embedding_model
+    with _embedding_lock:
+        if _embedding_model is None:
+            _embedding_model = _create_onnx_embedding_model()
+        return _embedding_model(input)
+
+
+def _create_shared_embedding_function():
+    """Use Chroma's default embedding identity with a process-wide ONNX model."""
+    from chromadb.utils.embedding_functions import DefaultEmbeddingFunction
+
+    class SharedDefaultEmbeddingFunction(DefaultEmbeddingFunction):
+        def __call__(self, input):
+            # Chroma's stock default creates a fresh ONNX embedder for every
+            # call. Keep one model and serialize inference to bound peak RAM.
+            return _embed_with_shared_model(input)
+
+    return SharedDefaultEmbeddingFunction()
+
+
+def _get_embedding_function():
+    global _embedding_function
+    if _embedding_function is None:
+        with _resource_lock:
+            if _embedding_function is None:
+                _embedding_function = _create_shared_embedding_function()
+    return _embedding_function
 
 
 def _source_fingerprint():
@@ -39,19 +85,19 @@ def _source_fingerprint():
 
 
 def _get_collection():
-    """Open the production Chroma collection only when retrieval is requested."""
+    """Open and retain one production Chroma collection per process."""
     global client, collection
     if collection is not None:
         return collection
-    if client is None:
-        import chromadb
-        client = chromadb.PersistentClient(path=str(DB_DIR))
-    from chromadb.utils import embedding_functions
-    collection = client.get_or_create_collection(
-        name="farm_knowledge_v2",
-        embedding_function=embedding_functions.DefaultEmbeddingFunction(),
-    )
-    return collection
+    with _resource_lock:
+        if collection is None:
+            if client is None:
+                client = _create_chroma_client()
+            collection = client.get_or_create_collection(
+                name="farm_knowledge_v2",
+                embedding_function=_get_embedding_function(),
+            )
+        return collection
 
 
 # --------------------------------------------------
